@@ -1,0 +1,6 @@
+---
+description: Canonical Django Foundation repository instructions
+alwaysApply: true
+---
+
+Before modifying this repository, read `/AGENTS.md`, the relevant `/docs/ai/` documents and `/docs/adr/` records, plus any nested `AGENTS.md` governing the files. Treat `/AGENTS.md` as the canonical project-wide instruction source.

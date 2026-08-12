@@ -11,6 +11,11 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/) and s
 - Added database-backed brute-force counters and synchronous task dispatch fallbacks.
 - Documented minimal, standard, and advanced infrastructure modes.
 
+### Added
+
+- Added canonical AI-agent instructions, focused module guidance, AI project context/workflow/security/testing rules, current project state, and architecture decision records.
+- Added minimal Claude, Cursor, and GitHub Copilot pointers to the canonical `AGENTS.md` instructions.
+
 ## [0.1.0] - 2026-08-12
 
 ### Added

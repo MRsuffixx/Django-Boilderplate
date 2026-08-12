@@ -15,7 +15,7 @@ Nested `AGENTS.md` files add rules for their directory tree. They supplement, an
 
 ## Repository purpose
 
-This is a reusable, production-oriented Django application foundation, not a product-specific application. It supplies identity, authentication, authorization, security, APIs, audit, notifications, files, background-work boundaries, configuration, testing, and deployment scaffolding. New products should add domain apps without rewriting these systems.
+This repository is a reusable, production-oriented Django boilerplate and application foundation, not a product-specific application. It supplies identity, authentication, authorization, security, APIs, audit, notifications, files, background-work boundaries, configuration, testing, and deployment scaffolding. New products should add domain apps without rewriting these systems.
 
 Preserve these invariants:
 
@@ -182,7 +182,7 @@ Call background work through service/task boundaries, preferably in `transaction
 - Use `AuditService` for privileged/state-changing action history and `SecurityEventService` for user-visible security history.
 - Do not treat `EventBus` as a durable message bus or put critical integrity logic in handlers.
 
-## Code and dependency conventions
+## Code style, naming, and dependency conventions
 
 - Python 3.13+, Django 5.2 LTS, type hints on service/public utility boundaries where practical.
 - Ruff owns formatting, imports, linting, and security rules. Line length is 100.

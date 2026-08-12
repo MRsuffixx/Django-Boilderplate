@@ -17,6 +17,10 @@ The repository favors explicit services and database constraints over signals an
 
 See [Architecture](docs/ARCHITECTURE.md), [API](docs/API.md), [Security](docs/SECURITY.md), and [Customization](docs/CUSTOMIZATION.md).
 
+## AI-assisted development
+
+This repository includes a canonical AI development contract in [AGENTS.md](AGENTS.md), focused module-level instructions, current context under [docs/ai](docs/ai/PROJECT_CONTEXT.md), and durable decisions under [docs/adr](docs/adr/README.md). Human and AI contributors should read the root instructions before architectural or security-sensitive changes. Tool-specific compatibility files only point to that canonical source and do not maintain duplicate rule sets.
+
 ## Requirements and supported modes
 
 Only Python 3.13+ and pip are required for the minimal mode. [uv](https://docs.astral.sh/uv/) is supported for faster dependency management, and Docker 24+/Compose v2 is optional.
