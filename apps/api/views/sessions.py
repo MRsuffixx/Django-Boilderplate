@@ -2,17 +2,21 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 
 from apps.api.serializers.sessions import UserSessionSerializer
+from apps.authentication.models import UserSession
 from apps.authentication.services import SessionService
 from common.responses import success_response
 
 
 class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = UserSession.objects.none()
     serializer_class = UserSessionSerializer
     lookup_field = "identifier"
     ordering_fields = ["created_at", "last_activity_at"]
     ordering = ["-last_activity_at"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return self.queryset
         return self.request.user.user_sessions.all()
 
     def list(self, request, *args, **kwargs):

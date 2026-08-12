@@ -210,14 +210,6 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
-    "SECURITY": [{"bearerAuth": []}, {"apiKeyAuth": []}, {"cookieAuth": []}],
-    "APPEND_COMPONENTS": {
-        "securitySchemes": {
-            "bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},
-            "apiKeyAuth": {"type": "apiKey", "in": "header", "name": "X-API-Key"},
-            "cookieAuth": {"type": "apiKey", "in": "cookie", "name": "sessionid"},
-        }
-    },
 }
 
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])

@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import logout, update_session_auth_hash
-from rest_framework import permissions, status
-from rest_framework.views import APIView
+from rest_framework import generics, permissions, status
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -40,7 +39,8 @@ from common.exceptions import APIException
 from common.responses import success_response
 
 
-class RegisterView(APIView):
+class RegisterView(generics.GenericAPIView):
+    serializer_class = RegistrationSerializer
     permission_classes = [permissions.AllowAny]
     throttle_classes = [RegisterThrottle]
 
@@ -57,7 +57,8 @@ class RegisterView(APIView):
         )
 
 
-class LoginView(APIView):
+class LoginView(generics.GenericAPIView):
+    serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
     throttle_classes = [LoginThrottle]
 
@@ -87,7 +88,9 @@ class RefreshView(TokenRefreshView):
         return success_response(response.data, status=response.status_code)
 
 
-class LogoutView(APIView):
+class LogoutView(generics.GenericAPIView):
+    serializer_class = LogoutSerializer
+
     def post(self, request):
         serializer = LogoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -104,7 +107,8 @@ class LogoutView(APIView):
         return success_response({"logged_out": True})
 
 
-class VerifyEmailView(APIView):
+class VerifyEmailView(generics.GenericAPIView):
+    serializer_class = TokenSerializer
     permission_classes = [permissions.AllowAny]
     throttle_classes = [EmailVerificationThrottle]
 
@@ -115,7 +119,8 @@ class VerifyEmailView(APIView):
         return success_response({"verified": True})
 
 
-class ResendVerificationView(APIView):
+class ResendVerificationView(generics.GenericAPIView):
+    serializer_class = EmailSerializer
     permission_classes = [permissions.AllowAny]
     throttle_classes = [EmailVerificationThrottle]
 
@@ -126,7 +131,8 @@ class ResendVerificationView(APIView):
         return success_response({"message": "If eligible, a verification email will be sent."})
 
 
-class PasswordResetRequestView(APIView):
+class PasswordResetRequestView(generics.GenericAPIView):
+    serializer_class = EmailSerializer
     permission_classes = [permissions.AllowAny]
     throttle_classes = [PasswordResetThrottle]
 
@@ -137,7 +143,8 @@ class PasswordResetRequestView(APIView):
         return success_response({"message": "If eligible, a password reset email will be sent."})
 
 
-class PasswordResetConfirmView(APIView):
+class PasswordResetConfirmView(generics.GenericAPIView):
+    serializer_class = PasswordResetConfirmSerializer
     permission_classes = [permissions.AllowAny]
     throttle_classes = [PasswordResetThrottle]
 
@@ -152,7 +159,9 @@ class PasswordResetConfirmView(APIView):
         return success_response({"password_reset": True})
 
 
-class ChangePasswordView(APIView):
+class ChangePasswordView(generics.GenericAPIView):
+    serializer_class = ChangePasswordSerializer
+
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -164,7 +173,9 @@ class ChangePasswordView(APIView):
         return success_response({"password_changed": True})
 
 
-class ChangeEmailView(APIView):
+class ChangeEmailView(generics.GenericAPIView):
+    serializer_class = ChangeEmailSerializer
+
     def post(self, request):
         serializer = ChangeEmailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -174,7 +185,8 @@ class ChangeEmailView(APIView):
         )
 
 
-class ConfirmEmailChangeView(APIView):
+class ConfirmEmailChangeView(generics.GenericAPIView):
+    serializer_class = TokenSerializer
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -186,7 +198,9 @@ class ConfirmEmailChangeView(APIView):
         return success_response({"email_changed": True})
 
 
-class ChangeUsernameView(APIView):
+class ChangeUsernameView(generics.GenericAPIView):
+    serializer_class = ChangeUsernameSerializer
+
     def post(self, request):
         serializer = ChangeUsernameSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
@@ -196,7 +210,9 @@ class ChangeUsernameView(APIView):
         return success_response(UserSerializer(user, context={"request": request}).data)
 
 
-class DeactivateAccountView(APIView):
+class DeactivateAccountView(generics.GenericAPIView):
+    serializer_class = PasswordConfirmationSerializer
+
     def post(self, request):
         serializer = PasswordConfirmationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -205,7 +221,9 @@ class DeactivateAccountView(APIView):
         return success_response({"deactivated": True})
 
 
-class DeleteAccountRequestView(APIView):
+class DeleteAccountRequestView(generics.GenericAPIView):
+    serializer_class = PasswordConfirmationSerializer
+
     def post(self, request):
         serializer = PasswordConfirmationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -213,7 +231,8 @@ class DeleteAccountRequestView(APIView):
         return success_response({"message": "A deletion confirmation email will be sent."})
 
 
-class DeleteAccountConfirmView(APIView):
+class DeleteAccountConfirmView(generics.GenericAPIView):
+    serializer_class = TokenSerializer
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -225,7 +244,9 @@ class DeleteAccountConfirmView(APIView):
         return success_response({"deleted": True})
 
 
-class TwoFactorSetupView(APIView):
+class TwoFactorSetupView(generics.GenericAPIView):
+    serializer_class = TwoFactorSetupSerializer
+
     def post(self, request):
         if not settings.ENABLE_TWO_FACTOR:
             raise APIException(
@@ -239,7 +260,9 @@ class TwoFactorSetupView(APIView):
         return success_response({"secret": secret, "provisioning_uri": provisioning_uri})
 
 
-class TwoFactorConfirmView(APIView):
+class TwoFactorConfirmView(generics.GenericAPIView):
+    serializer_class = TwoFactorCodeSerializer
+
     def post(self, request):
         serializer = TwoFactorCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -249,7 +272,9 @@ class TwoFactorConfirmView(APIView):
         return success_response({"enabled": True, "recovery_codes": codes})
 
 
-class TwoFactorDisableView(APIView):
+class TwoFactorDisableView(generics.GenericAPIView):
+    serializer_class = TwoFactorDisableSerializer
+
     def post(self, request):
         serializer = TwoFactorDisableSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -257,7 +282,9 @@ class TwoFactorDisableView(APIView):
         return success_response({"disabled": True})
 
 
-class RecoveryCodeRegenerateView(APIView):
+class RecoveryCodeRegenerateView(generics.GenericAPIView):
+    serializer_class = TwoFactorCodeSerializer
+
     def post(self, request):
         serializer = TwoFactorCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

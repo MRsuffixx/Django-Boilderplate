@@ -12,12 +12,15 @@ from common.responses import success_response
 
 
 class APIKeyViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = APIKey.objects.none()
     serializer_class = APIKeySerializer
     throttle_classes = [APIKeyThrottle]
     ordering_fields = ["created_at", "last_used_at", "expires_at"]
     ordering = ["-created_at"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return self.queryset
         return APIKey.objects.filter(owner=self.request.user)
 
     @idempotent()

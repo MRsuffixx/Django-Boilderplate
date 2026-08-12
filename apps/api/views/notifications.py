@@ -10,6 +10,7 @@ from common.responses import success_response
 
 
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Notification.objects.none()
     serializer_class = NotificationSerializer
     permission_classes = [permissions.IsAuthenticated, HasAPIKeyScope]
     required_api_key_scopes = ("notifications.read",)
@@ -18,6 +19,8 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ["-created_at"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return self.queryset
         return Notification.objects.filter(user=self.request.user).filter(
             Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
         )

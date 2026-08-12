@@ -11,6 +11,7 @@ from apps.api.serializers.accounts import (
 )
 from apps.api_keys.permissions import HasAPIKeyScope
 from apps.audit.services import AuditService
+from apps.security.models import SecurityEvent
 from common.permissions import HasPermission
 from common.responses import success_response
 
@@ -67,11 +68,14 @@ class CurrentUserPreferencesView(generics.RetrieveUpdateAPIView):
 
 
 class SecurityEventListView(generics.ListAPIView):
+    queryset = SecurityEvent.objects.none()
     serializer_class = SecurityEventSerializer
     ordering_fields = ["created_at", "event_type"]
     ordering = ["-created_at"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return self.queryset
         return self.request.user.security_events.all()
 
 
@@ -85,8 +89,6 @@ class SecurityEventAdminViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ["-created_at"]
 
     def get_queryset(self):
-        from apps.security.models import SecurityEvent
-
         return SecurityEvent.objects.select_related("user")
 
 
