@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, TypeVar, cast
+from typing import Any, cast
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
-TaskFunction = TypeVar("TaskFunction", bound=Callable[..., Any])
 
-
-def _synchronous_task(function: TaskFunction) -> TaskFunction:
+def _synchronous_task[TaskFunction: Callable[..., Any]](
+    function: TaskFunction,
+) -> TaskFunction:
     """Expose a small Celery-compatible surface while running work inline."""
 
     @wraps(function)
@@ -38,9 +38,9 @@ def shared_task(*decorator_args, **decorator_kwargs):
         return celery_shared_task(*decorator_args, **decorator_kwargs)
 
     if len(decorator_args) == 1 and callable(decorator_args[0]) and not decorator_kwargs:
-        return _synchronous_task(cast(TaskFunction, decorator_args[0]))
+        return _synchronous_task(cast(Callable[..., Any], decorator_args[0]))
 
-    def decorator(function: TaskFunction) -> TaskFunction:
+    def decorator[TaskFunction: Callable[..., Any]](function: TaskFunction) -> TaskFunction:
         return _synchronous_task(function)
 
     return decorator

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import secrets
 from datetime import timedelta
 
@@ -37,6 +38,8 @@ from common.events import ApplicationEvent, EventBus
 from common.exceptions import APIException
 from common.services.email import EmailService
 from common.utils.network import get_client_ip
+
+logger = logging.getLogger(__name__)
 
 
 class TokenService:
@@ -151,7 +154,10 @@ class SessionService:
             session_key = decrypt_value(locked.encrypted_session_key, purpose="django-session")
             Session.objects.filter(session_key=session_key).delete()
         except ValueError:
-            pass
+            logger.warning(
+                "session.encrypted_reference_invalid",
+                extra={"user_id": str(locked.user_id), "session_id": str(locked.pk)},
+            )
         SecurityEventService.record(
             SecurityEventType.SESSION_REVOKED,
             user=locked.user,

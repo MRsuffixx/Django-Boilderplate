@@ -18,6 +18,9 @@ __pycache__/
 dist/
 build/
 .python-version
+.uv-cache/
+.uv-python/
+.pre-commit-cache/
 
 # Django runtime data
 db.sqlite3

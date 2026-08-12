@@ -96,9 +96,7 @@ TEMPLATES = [
 
 DATABASES = build_database_config(env=env, base_dir=BASE_DIR)
 DATABASE_ENGINE = (
-    "postgresql"
-    if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql"
-    else "sqlite"
+    "postgresql" if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql" else "sqlite"
 )
 
 REDIS_ENABLED = env.bool("REDIS_ENABLED", default=False)
@@ -157,9 +155,7 @@ STORAGES = {
 }
 if env("STORAGE_BACKEND", default="local").lower() == "s3":
     if importlib.util.find_spec("storages") is None:
-        raise ImproperlyConfigured(
-            'STORAGE_BACKEND=s3 requires the optional ".[s3]" dependency.'
-        )
+        raise ImproperlyConfigured('STORAGE_BACKEND=s3 requires the optional ".[s3]" dependency.')
     STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
     AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID", default="")
     AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY", default="")

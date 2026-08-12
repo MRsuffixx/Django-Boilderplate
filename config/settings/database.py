@@ -21,7 +21,9 @@ def build_database_config(*, env, base_dir: Path) -> dict[str, dict]:
             database_name: str | Path = configured_path
         else:
             database_path = Path(configured_path).expanduser()
-            database_name = database_path if database_path.is_absolute() else base_dir / database_path
+            database_name = (
+                database_path if database_path.is_absolute() else base_dir / database_path
+            )
         return {
             "default": {
                 "ENGINE": "django.db.backends.sqlite3",
@@ -59,9 +61,7 @@ def build_database_config(*, env, base_dir: Path) -> dict[str, dict]:
                 "PORT": env("DB_PORT", default="5432"),
             }
         database["CONN_MAX_AGE"] = env.int("DATABASE_CONN_MAX_AGE", default=60)
-        database["CONN_HEALTH_CHECKS"] = env.bool(
-            "DATABASE_CONN_HEALTH_CHECKS", default=True
-        )
+        database["CONN_HEALTH_CHECKS"] = env.bool("DATABASE_CONN_HEALTH_CHECKS", default=True)
         return {"default": database}
 
     raise ImproperlyConfigured(

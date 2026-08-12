@@ -109,7 +109,7 @@ celery -A config.celery worker --loglevel=INFO
 celery -A config.celery beat --loglevel=INFO
 ```
 
-Celery is disabled by default and is not imported at Django startup. Safe task dispatch runs synchronously when disabled, including email delivery; failures remain visible to the request/service caller. Enable it with `CELERY_ENABLED=true`, install the `celery` extra, and configure a broker. A Redis broker also requires `REDIS_ENABLED=true` and the `redis` extra; another Celery-supported broker may be used instead.
+Celery is disabled by default and is not imported at Django startup. Safe task dispatch runs synchronously when disabled, including email and enabled webhook delivery; failures remain visible to the request/service caller. Enable it with `CELERY_ENABLED=true`, install the `celery` extra, and configure a broker. A Redis broker also requires `REDIS_ENABLED=true` and the `redis` extra; another Celery-supported broker may be used instead.
 
 Beat schedules session/token/notification/file/login-counter cleanup, optional audit retention, ban synchronization, and webhook dispatch. Without Beat, run the equivalent management commands from the platform scheduler. Retention is environment-driven; `AUDIT_RETENTION_DAYS=0` retains audit data indefinitely.
 

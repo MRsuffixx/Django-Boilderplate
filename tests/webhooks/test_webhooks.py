@@ -76,3 +76,33 @@ def test_emit_selects_subscribed_endpoints_on_sqlite(monkeypatch, user):
     assert list(WebhookDelivery.objects.filter(event=event).values_list("endpoint", flat=True)) == [
         matching.pk
     ]
+
+
+def test_emit_dispatches_through_synchronous_task_boundary_without_celery(
+    monkeypatch, user, settings, django_capture_on_commit_callbacks
+):
+    monkeypatch.setattr(
+        socket,
+        "getaddrinfo",
+        lambda *args, **kwargs: [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))
+        ],
+    )
+    WebhookService.create_endpoint(
+        owner=user,
+        name="Receiver",
+        url="https://receiver.example.test/hook",
+        event_types=["example.created"],
+    )
+    settings.ENABLE_WEBHOOKS = True
+    settings.CELERY_ENABLED = False
+    dispatched = []
+    monkeypatch.setattr(
+        "apps.webhooks.tasks.dispatch_pending_webhooks.delay",
+        lambda: dispatched.append(True),
+    )
+
+    with django_capture_on_commit_callbacks(execute=True):
+        WebhookService.emit(event_type="example.created", payload={"id": "123"})
+
+    assert dispatched == [True]

@@ -241,7 +241,6 @@ python manage.py spectacular --file schema.yml --validate
 pytest
 ruff check .
 ruff format --check .
-docker build .
 ```
 
-The Python checks above apply to every mode. Docker build/Compose startup are separate Linux validation steps and may be omitted from a local Python-only review. When a feature is selected, test actual PostgreSQL constraints/concurrency, Redis failure, worker/Beat startup, SMTP delivery into a safe inbox, S3 upload/download, proxy scheme/client IP, CORS/CSRF frontend flow, readiness under dependency loss, backups/restores, and domain-specific authorization abuse cases.
+The Python checks above apply to every mode. Docker build/Compose startup are separate Linux validation steps. When a feature is selected, test actual PostgreSQL constraints/concurrency, Redis failure, worker/Beat startup, SMTP delivery into a safe inbox, S3 upload/download, proxy scheme/client IP, CORS/CSRF frontend flow, readiness under dependency loss, backups/restores, and domain-specific authorization abuse cases.

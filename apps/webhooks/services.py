@@ -70,6 +70,14 @@ class WebhookService:
         WebhookDelivery.objects.bulk_create(
             [WebhookDelivery(endpoint=endpoint, event=event) for endpoint in endpoints]
         )
+        if settings.ENABLE_WEBHOOKS and endpoints:
+
+            def dispatch() -> None:
+                from apps.webhooks.tasks import dispatch_pending_webhooks
+
+                dispatch_pending_webhooks.delay()
+
+            transaction.on_commit(dispatch)
         return event
 
     @classmethod

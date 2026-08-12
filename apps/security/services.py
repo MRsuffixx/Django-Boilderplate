@@ -74,7 +74,10 @@ class LoginProtectionService:
             dimension_hash__in=hashes, locked_until__gt=now
         ).values_list("locked_until", flat=True)
         retry_after = max(
-            (max(1, int((locked_until - now).total_seconds())) for locked_until in locked_until_values),
+            (
+                max(1, int((locked_until - now).total_seconds()))
+                for locked_until in locked_until_values
+            ),
             default=0,
         )
         return LockoutState(bool(retry_after), retry_after)
@@ -127,7 +130,9 @@ class LoginProtectionService:
             with transaction.atomic():
                 state, _ = LoginThrottleState.objects.select_for_update().get_or_create(
                     dimension_hash=cls._state_key(dimension),
-                    defaults={"expires_at": now + timedelta(seconds=settings.LOGIN_MAX_BACKOFF_SECONDS)},
+                    defaults={
+                        "expires_at": now + timedelta(seconds=settings.LOGIN_MAX_BACKOFF_SECONDS)
+                    },
                 )
                 if state.expires_at <= now:
                     state.attempt_count = 0

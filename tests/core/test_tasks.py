@@ -14,6 +14,7 @@ from apps.notifications.models import Notification
 from apps.notifications.tasks import cleanup_notifications
 from apps.security.models import LoginThrottleState
 from apps.security.tasks import cleanup_login_attempts
+from common.tasks import shared_task
 
 pytestmark = pytest.mark.django_db
 
@@ -92,3 +93,14 @@ def test_expired_login_throttle_cleanup():
 
     assert cleanup_login_attempts() == 1
     assert not LoginThrottleState.objects.filter(pk=state.pk).exists()
+
+
+def test_task_dispatch_runs_synchronously_without_celery(settings):
+    settings.CELERY_ENABLED = False
+
+    @shared_task(name="tests.synchronous_task")
+    def add(left, right):
+        return left + right
+
+    assert add.delay(2, 3) == 5
+    assert add.apply_async(args=(4, 5)) == 9
