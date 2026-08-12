@@ -69,7 +69,9 @@ class EmailService:
         return message.send(fail_silently=False)
 
     @staticmethod
-    def enqueue(*, template: str, recipient: str, subject: str, context: dict | None = None) -> None:
+    def enqueue(
+        *, template: str, recipient: str, subject: str, context: dict | None = None
+    ) -> None:
         if settings.ENABLE_CELERY and not settings.CELERY_TASK_ALWAYS_EAGER:
             from apps.core.tasks import send_templated_email
 
@@ -80,4 +82,6 @@ class EmailService:
                 EmailService._task_context(context or {}),
             )
         else:
-            EmailService.send(template=template, recipient=recipient, subject=subject, context=context)
+            EmailService.send(
+                template=template, recipient=recipient, subject=subject, context=context
+            )

@@ -35,13 +35,17 @@ class SecureFileValidator:
         guessed = filetype.guess(sample)
         detected_mime = guessed.mime if guessed else "application/octet-stream"
         if detected_mime not in self.allowed_mime_types:
-            raise ValidationError("The file content type is not allowed.", code="invalid_content_type")
+            raise ValidationError(
+                "The file content type is not allowed.", code="invalid_content_type"
+            )
         if detected_mime.startswith("image/"):
             try:
                 with Image.open(uploaded_file) as image:
                     width, height = image.size
                     if width * height > settings.MAX_IMAGE_PIXELS:
-                        raise ValidationError("Image dimensions are too large.", code="image_too_large")
+                        raise ValidationError(
+                            "Image dimensions are too large.", code="image_too_large"
+                        )
                     image.verify()
             except (UnidentifiedImageError, OSError) as exc:
                 raise ValidationError("The image is invalid.", code="invalid_image") from exc
@@ -54,4 +58,8 @@ class SecureFileValidator:
         for chunk in uploaded_file.chunks():
             digest.update(chunk)
         uploaded_file.seek(0)
-        return {"content_type": detected_mime, "size": uploaded_file.size, "checksum_sha256": digest.hexdigest()}
+        return {
+            "content_type": detected_mime,
+            "size": uploaded_file.size,
+            "checksum_sha256": digest.hexdigest(),
+        }

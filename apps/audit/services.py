@@ -23,7 +23,9 @@ class AuditService:
         target_repr: str | None = None,
     ) -> AuditLog:
         resolved_type = target_type or (
-            f"{target._meta.app_label}.{target._meta.model_name}" if target is not None else "system"
+            f"{target._meta.app_label}.{target._meta.model_name}"
+            if target is not None
+            else "system"
         )
         return AuditLog.objects.create(
             actor=actor if actor and actor.is_authenticated else None,

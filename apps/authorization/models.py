@@ -17,7 +17,9 @@ class Permission(UUIDModel, TimeStampedModel):
         ordering = ["codename"]
 
     def clean(self):
-        if self.codename.count(".") != 1 or any(not part.replace("_", "").isalnum() for part in self.codename.split(".")):
+        if self.codename.count(".") != 1 or any(
+            not part.replace("_", "").isalnum() for part in self.codename.split(".")
+        ):
             raise ValidationError({"codename": "Use the 'resource.action' format."})
 
     def __str__(self) -> str:
@@ -50,11 +52,17 @@ class RolePermission(UUIDModel):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["role", "permission"], name="authz_role_permission_unique")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["role", "permission"], name="authz_role_permission_unique"
+            )
+        ]
 
 
 class UserRole(UUIDModel):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="role_assignments")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="role_assignments"
+    )
     role = models.ForeignKey(Role, on_delete=models.PROTECT, related_name="user_assignments")
     granted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -68,8 +76,14 @@ class UserRole(UUIDModel):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["user", "role"], name="authz_user_role_unique")]
-        indexes = [models.Index(fields=["user", "valid_from", "valid_until"], name="authz_user_role_valid_idx")]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "role"], name="authz_user_role_unique")
+        ]
+        indexes = [
+            models.Index(
+                fields=["user", "valid_from", "valid_until"], name="authz_user_role_valid_idx"
+            )
+        ]
 
     @property
     def is_valid(self) -> bool:
@@ -83,8 +97,12 @@ class OverrideEffect(models.TextChoices):
 
 
 class UserPermissionOverride(UUIDModel, TimeStampedModel):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="permission_overrides")
-    permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name="user_overrides")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="permission_overrides"
+    )
+    permission = models.ForeignKey(
+        Permission, on_delete=models.CASCADE, related_name="user_overrides"
+    )
     effect = models.CharField(max_length=8, choices=OverrideEffect.choices)
     reason = models.CharField(max_length=255, blank=True)
     granted_by = models.ForeignKey(
@@ -96,5 +114,9 @@ class UserPermissionOverride(UUIDModel, TimeStampedModel):
     )
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["user", "permission"], name="authz_user_permission_unique")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "permission"], name="authz_user_permission_unique"
+            )
+        ]
         indexes = [models.Index(fields=["user", "effect"], name="authz_user_override_idx")]

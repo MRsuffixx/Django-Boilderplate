@@ -1,6 +1,12 @@
 from rest_framework import serializers
 
-from apps.authorization.models import Permission, Role, RolePermission, UserPermissionOverride, UserRole
+from apps.authorization.models import (
+    Permission,
+    Role,
+    RolePermission,
+    UserPermissionOverride,
+    UserRole,
+)
 
 
 class PermissionSerializer(serializers.ModelSerializer):
@@ -15,7 +21,17 @@ class RoleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Role
-        fields = ["id", "name", "slug", "description", "priority", "is_system", "permissions", "created_at", "updated_at"]
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "description",
+            "priority",
+            "is_system",
+            "permissions",
+            "created_at",
+            "updated_at",
+        ]
         read_only_fields = ["id", "is_system", "created_at", "updated_at"]
 
 
@@ -36,5 +52,14 @@ class UserRoleSerializer(serializers.ModelSerializer):
 class UserPermissionOverrideSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserPermissionOverride
-        fields = ["id", "user", "permission", "effect", "reason", "granted_by", "created_at", "updated_at"]
+        fields = [
+            "id",
+            "user",
+            "permission",
+            "effect",
+            "reason",
+            "granted_by",
+            "created_at",
+            "updated_at",
+        ]
         read_only_fields = ["id", "granted_by", "created_at", "updated_at"]

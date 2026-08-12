@@ -8,7 +8,13 @@ from apps.api.serializers.authorization import (
     UserRoleSerializer,
 )
 from apps.audit.services import AuditService
-from apps.authorization.models import Permission, Role, RolePermission, UserPermissionOverride, UserRole
+from apps.authorization.models import (
+    Permission,
+    Role,
+    RolePermission,
+    UserPermissionOverride,
+    UserRole,
+)
 from common.permissions import HasPermission
 
 
@@ -18,16 +24,38 @@ class AuthorizationViewSet(viewsets.ModelViewSet):
     audit_name = "authorization"
 
     def perform_create(self, serializer):
-        instance = serializer.save(granted_by=self.request.user) if "granted_by" in serializer.fields else serializer.save()
-        AuditService.record(action=f"{self.audit_name}.created", target=instance, actor=self.request.user, request=self.request, after=serializer.validated_data)
+        instance = (
+            serializer.save(granted_by=self.request.user)
+            if "granted_by" in serializer.fields
+            else serializer.save()
+        )
+        AuditService.record(
+            action=f"{self.audit_name}.created",
+            target=instance,
+            actor=self.request.user,
+            request=self.request,
+            after=serializer.validated_data,
+        )
 
     def perform_update(self, serializer):
         before = {field: getattr(serializer.instance, field) for field in serializer.validated_data}
         instance = serializer.save()
-        AuditService.record(action=f"{self.audit_name}.updated", target=instance, actor=self.request.user, request=self.request, before=before, after=serializer.validated_data)
+        AuditService.record(
+            action=f"{self.audit_name}.updated",
+            target=instance,
+            actor=self.request.user,
+            request=self.request,
+            before=before,
+            after=serializer.validated_data,
+        )
 
     def perform_destroy(self, instance):
-        AuditService.record(action=f"{self.audit_name}.deleted", target=instance, actor=self.request.user, request=self.request)
+        AuditService.record(
+            action=f"{self.audit_name}.deleted",
+            target=instance,
+            actor=self.request.user,
+            request=self.request,
+        )
         instance.delete()
 
 

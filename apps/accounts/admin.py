@@ -24,20 +24,54 @@ class UserSecuritySettingsInline(admin.StackedInline):
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     ordering = ["-created_at"]
-    list_display = ["email", "username", "status", "is_active", "is_staff", "email_verified_at", "created_at"]
-    list_filter = ["status", "is_active", "is_staff", "is_superuser", "email_verified_at", "created_at"]
+    list_display = [
+        "email",
+        "username",
+        "status",
+        "is_active",
+        "is_staff",
+        "email_verified_at",
+        "created_at",
+    ]
+    list_filter = [
+        "status",
+        "is_active",
+        "is_staff",
+        "is_superuser",
+        "email_verified_at",
+        "created_at",
+    ]
     search_fields = ["email", "username", "first_name", "last_name"]
-    readonly_fields = ["id", "last_login", "last_login_ip", "date_joined", "created_at", "updated_at"]
+    readonly_fields = [
+        "id",
+        "last_login",
+        "last_login_ip",
+        "date_joined",
+        "created_at",
+        "updated_at",
+    ]
     fieldsets = [
         (None, {"fields": ["id", "email", "username", "password"]}),
         (_("Personal info"), {"fields": ["first_name", "last_name", "avatar", "phone"]}),
         (_("Verification"), {"fields": ["email_verified_at", "phone_verified_at"]}),
         (_("Account state"), {"fields": ["status", "is_active", "is_staff", "is_superuser"]}),
-        (_("Django permissions"), {"fields": ["groups", "user_permissions"], "classes": ["collapse"]}),
-        (_("Important dates"), {"fields": ["last_login", "last_login_ip", "date_joined", "created_at", "updated_at"]}),
+        (
+            _("Django permissions"),
+            {"fields": ["groups", "user_permissions"], "classes": ["collapse"]},
+        ),
+        (
+            _("Important dates"),
+            {"fields": ["last_login", "last_login_ip", "date_joined", "created_at", "updated_at"]},
+        ),
     ]
     add_fieldsets = [
-        (None, {"classes": ["wide"], "fields": ["email", "username", "password1", "password2", "status", "is_staff"]})
+        (
+            None,
+            {
+                "classes": ["wide"],
+                "fields": ["email", "username", "password1", "password2", "status", "is_staff"],
+            },
+        )
     ]
     filter_horizontal = ["groups", "user_permissions"]
     inlines = [UserProfileInline, UserPreferencesInline, UserSecuritySettingsInline]

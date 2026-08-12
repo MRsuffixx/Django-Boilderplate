@@ -5,7 +5,9 @@ from common.models import UUIDModel
 
 
 class Notification(UUIDModel):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications"
+    )
     type = models.CharField(max_length=100, db_index=True)
     title = models.CharField(max_length=255)
     message = models.TextField()
@@ -16,4 +18,8 @@ class Notification(UUIDModel):
 
     class Meta:
         ordering = ["-created_at"]
-        indexes = [models.Index(fields=["user", "read_at", "created_at"], name="notification_user_unread_idx")]
+        indexes = [
+            models.Index(
+                fields=["user", "read_at", "created_at"], name="notification_user_unread_idx"
+            )
+        ]

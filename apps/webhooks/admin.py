@@ -25,7 +25,15 @@ class WebhookEventAdmin(admin.ModelAdmin):
 
 @admin.register(WebhookDelivery)
 class WebhookDeliveryAdmin(admin.ModelAdmin):
-    list_display = ["endpoint", "event", "status", "attempt_count", "response_code", "last_attempt_at", "next_retry_at"]
+    list_display = [
+        "endpoint",
+        "event",
+        "status",
+        "attempt_count",
+        "response_code",
+        "last_attempt_at",
+        "next_retry_at",
+    ]
     list_filter = ["status", "response_code", "last_attempt_at", "next_retry_at"]
     search_fields = ["endpoint__name", "event__event_type"]
     readonly_fields = [field.name for field in WebhookDelivery._meta.fields]

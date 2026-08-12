@@ -121,7 +121,10 @@ PASSWORD_HASHERS = [
 ]
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 12}},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 12},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
@@ -228,6 +231,7 @@ CONTENT_SECURITY_POLICY = env(
     "CONTENT_SECURITY_POLICY",
     default="default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'",
 )
+TRUST_PROXY_HEADERS = env.bool("TRUST_PROXY_HEADERS", default=False)
 
 EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
 EMAIL_HOST = env("EMAIL_HOST", default="localhost")
@@ -239,7 +243,9 @@ EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
 EMAIL_TIMEOUT = 10
 
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=redis_url or "redis://localhost:6379/1")
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=redis_url or "redis://localhost:6379/2")
+CELERY_RESULT_BACKEND = env(
+    "CELERY_RESULT_BACKEND", default=redis_url or "redis://localhost:6379/2"
+)
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
 CELERY_TASK_EAGER_PROPAGATES = True
 CELERY_TASK_SERIALIZER = "json"
@@ -250,9 +256,15 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_BEAT_SCHEDULE = {
-    "cleanup-sessions-daily": {"task": "apps.authentication.tasks.cleanup_sessions", "schedule": 86400},
+    "cleanup-sessions-daily": {
+        "task": "apps.authentication.tasks.cleanup_sessions",
+        "schedule": 86400,
+    },
     "cleanup-tokens-daily": {"task": "apps.authentication.tasks.cleanup_tokens", "schedule": 86400},
-    "cleanup-notifications-daily": {"task": "apps.notifications.tasks.cleanup_notifications", "schedule": 86400},
+    "cleanup-notifications-daily": {
+        "task": "apps.notifications.tasks.cleanup_notifications",
+        "schedule": 86400,
+    },
     "expire-bans-hourly": {"task": "apps.accounts.tasks.expire_temporary_bans", "schedule": 3600},
     "cleanup-files-daily": {"task": "apps.files.tasks.cleanup_unused_files", "schedule": 86400},
     "dispatch-webhooks": {"task": "apps.webhooks.tasks.dispatch_pending_webhooks", "schedule": 60},
@@ -303,7 +315,11 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": LOG_LEVEL},
     "loggers": {
         "django.server": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
-        "django.security.DisallowedHost": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+        "django.security.DisallowedHost": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
     },
 }
 

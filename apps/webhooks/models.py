@@ -39,9 +39,13 @@ class DeliveryStatus(models.TextChoices):
 
 
 class WebhookDelivery(UUIDModel):
-    endpoint = models.ForeignKey(WebhookEndpoint, on_delete=models.CASCADE, related_name="deliveries")
+    endpoint = models.ForeignKey(
+        WebhookEndpoint, on_delete=models.CASCADE, related_name="deliveries"
+    )
     event = models.ForeignKey(WebhookEvent, on_delete=models.CASCADE, related_name="deliveries")
-    status = models.CharField(max_length=16, choices=DeliveryStatus.choices, default=DeliveryStatus.PENDING, db_index=True)
+    status = models.CharField(
+        max_length=16, choices=DeliveryStatus.choices, default=DeliveryStatus.PENDING, db_index=True
+    )
     attempt_count = models.PositiveSmallIntegerField(default=0)
     response_code = models.PositiveSmallIntegerField(null=True, blank=True)
     response_body = models.TextField(blank=True)
@@ -50,5 +54,11 @@ class WebhookDelivery(UUIDModel):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["endpoint", "event"], name="webhook_endpoint_event_unique")]
-        indexes = [models.Index(fields=["status", "next_retry_at"], name="webhook_pending_retry_idx")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["endpoint", "event"], name="webhook_endpoint_event_unique"
+            )
+        ]
+        indexes = [
+            models.Index(fields=["status", "next_retry_at"], name="webhook_pending_retry_idx")
+        ]

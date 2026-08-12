@@ -9,8 +9,27 @@ class APIKeySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = APIKey
-        fields = ["id", "name", "prefix", "scopes", "created_at", "last_used_at", "last_used_ip", "expires_at", "revoked_at", "is_active"]
-        read_only_fields = ["id", "prefix", "created_at", "last_used_at", "last_used_ip", "revoked_at", "is_active"]
+        fields = [
+            "id",
+            "name",
+            "prefix",
+            "scopes",
+            "created_at",
+            "last_used_at",
+            "last_used_ip",
+            "expires_at",
+            "revoked_at",
+            "is_active",
+        ]
+        read_only_fields = [
+            "id",
+            "prefix",
+            "created_at",
+            "last_used_at",
+            "last_used_ip",
+            "revoked_at",
+            "is_active",
+        ]
 
     def validate_scopes(self, value):
         unknown = set(value) - set(settings.API_KEY_AVAILABLE_SCOPES)

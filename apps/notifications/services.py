@@ -21,7 +21,9 @@ class NotificationMessage:
 
 class NotificationService:
     @staticmethod
-    def notify(*, user, message: NotificationMessage, channels: tuple[str, ...] = ("in_app",)) -> Notification | None:
+    def notify(
+        *, user, message: NotificationMessage, channels: tuple[str, ...] = ("in_app",)
+    ) -> Notification | None:
         notification = None
         if settings.ENABLE_NOTIFICATIONS and "in_app" in channels:
             notification = Notification.objects.create(

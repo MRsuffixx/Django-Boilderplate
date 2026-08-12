@@ -34,7 +34,9 @@ class RuntimeSettingService:
         row.save()
         cache.delete(f"runtime-setting:{key}:0")
         cache.delete(f"runtime-setting:{key}:1")
-        AuditService.record(action="setting.created" if created else "setting.updated", target=row, actor=actor)
+        AuditService.record(
+            action="setting.created" if created else "setting.updated", target=row, actor=actor
+        )
         return row
 
 

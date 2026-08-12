@@ -8,7 +8,17 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Notification
-        fields = ["id", "type", "title", "message", "data", "is_read", "read_at", "created_at", "expires_at"]
+        fields = [
+            "id",
+            "type",
+            "title",
+            "message",
+            "data",
+            "is_read",
+            "read_at",
+            "created_at",
+            "expires_at",
+        ]
         read_only_fields = fields
 
     def get_is_read(self, obj) -> bool:

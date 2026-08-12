@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.contrib.auth import logout, update_session_auth_hash
-from django.db import transaction
 from rest_framework import permissions, status
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
@@ -22,9 +21,19 @@ from apps.api.serializers.auth import (
     TwoFactorCodeSerializer,
     TwoFactorDisableSerializer,
 )
-from apps.api.throttles import EmailVerificationThrottle, LoginThrottle, PasswordResetThrottle, RegisterThrottle
+from apps.api.throttles import (
+    EmailVerificationThrottle,
+    LoginThrottle,
+    PasswordResetThrottle,
+    RegisterThrottle,
+)
 from apps.authentication.jwt import StatusAwareTokenRefreshSerializer
-from apps.authentication.services import AccountService, AuthenticationService, SessionService, TwoFactorService
+from apps.authentication.services import (
+    AccountService,
+    AuthenticationService,
+    SessionService,
+    TwoFactorService,
+)
 from apps.core.services import RuntimeSettingService
 from common.exceptions import APIException
 from common.responses import success_response
@@ -36,11 +45,15 @@ class RegisterView(APIView):
 
     def post(self, request):
         if not RuntimeSettingService.get("site.registration_enabled", True):
-            raise APIException("Registration is disabled.", code="REGISTRATION_DISABLED", status_code=403)
+            raise APIException(
+                "Registration is disabled.", code="REGISTRATION_DISABLED", status_code=403
+            )
         serializer = RegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = AccountService.register_user(**serializer.validated_data, request=request)
-        return success_response(UserSerializer(user, context={"request": request}).data, status=status.HTTP_201_CREATED)
+        return success_response(
+            UserSerializer(user, context={"request": request}).data, status=status.HTTP_201_CREATED
+        )
 
 
 class LoginView(APIView):
@@ -50,7 +63,9 @@ class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user, user_session = AuthenticationService.login(request=request, **serializer.validated_data)
+        user, user_session = AuthenticationService.login(
+            request=request, **serializer.validated_data
+        )
         refresh = RefreshToken.for_user(user)
         return success_response(
             {
@@ -140,7 +155,9 @@ class ChangePasswordView(APIView):
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        AccountService.change_password(user=request.user, request=request, **serializer.validated_data)
+        AccountService.change_password(
+            user=request.user, request=request, **serializer.validated_data
+        )
         request.user.refresh_from_db()
         update_session_auth_hash(request, request.user)
         return success_response({"password_changed": True})
@@ -151,7 +168,9 @@ class ChangeEmailView(APIView):
         serializer = ChangeEmailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         AccountService.request_email_change(user=request.user, **serializer.validated_data)
-        return success_response({"message": "A confirmation email will be sent to the new address."})
+        return success_response(
+            {"message": "A confirmation email will be sent to the new address."}
+        )
 
 
 class ConfirmEmailChangeView(APIView):
@@ -160,7 +179,9 @@ class ConfirmEmailChangeView(APIView):
     def post(self, request):
         serializer = TokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        AccountService.confirm_email_change(raw_token=serializer.validated_data["token"], request=request)
+        AccountService.confirm_email_change(
+            raw_token=serializer.validated_data["token"], request=request
+        )
         return success_response({"email_changed": True})
 
 
@@ -168,7 +189,9 @@ class ChangeUsernameView(APIView):
     def post(self, request):
         serializer = ChangeUsernameSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
-        user = AccountService.change_username(user=request.user, request=request, **serializer.validated_data)
+        user = AccountService.change_username(
+            user=request.user, request=request, **serializer.validated_data
+        )
         return success_response(UserSerializer(user, context={"request": request}).data)
 
 
@@ -195,14 +218,18 @@ class DeleteAccountConfirmView(APIView):
     def post(self, request):
         serializer = TokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        AccountService.confirm_deletion(raw_token=serializer.validated_data["token"], request=request)
+        AccountService.confirm_deletion(
+            raw_token=serializer.validated_data["token"], request=request
+        )
         return success_response({"deleted": True})
 
 
 class TwoFactorSetupView(APIView):
     def post(self, request):
         if not settings.ENABLE_TWO_FACTOR:
-            raise APIException("Two-factor authentication is disabled.", code="FEATURE_DISABLED", status_code=404)
+            raise APIException(
+                "Two-factor authentication is disabled.", code="FEATURE_DISABLED", status_code=404
+            )
         secret, provisioning_uri = TwoFactorService.begin_setup(user=request.user)
         return success_response({"secret": secret, "provisioning_uri": provisioning_uri})
 
@@ -211,7 +238,9 @@ class TwoFactorConfirmView(APIView):
     def post(self, request):
         serializer = TwoFactorCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        codes = TwoFactorService.confirm_setup(user=request.user, request=request, **serializer.validated_data)
+        codes = TwoFactorService.confirm_setup(
+            user=request.user, request=request, **serializer.validated_data
+        )
         return success_response({"enabled": True, "recovery_codes": codes})
 
 
@@ -227,5 +256,7 @@ class RecoveryCodeRegenerateView(APIView):
     def post(self, request):
         serializer = TwoFactorCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        codes = TwoFactorService.regenerate_codes(user=request.user, request=request, **serializer.validated_data)
+        codes = TwoFactorService.regenerate_codes(
+            user=request.user, request=request, **serializer.validated_data
+        )
         return success_response({"recovery_codes": codes})

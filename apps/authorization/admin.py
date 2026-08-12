@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from apps.authorization.models import Permission, Role, RolePermission, UserPermissionOverride, UserRole
+from apps.authorization.models import (
+    Permission,
+    Role,
+    RolePermission,
+    UserPermissionOverride,
+    UserRole,
+)
 
 
 class RolePermissionInline(admin.TabularInline):
@@ -19,7 +25,9 @@ class RoleAdmin(admin.ModelAdmin):
     inlines = [RolePermissionInline]
 
     def has_delete_permission(self, request, obj=None):
-        return bool(super().has_delete_permission(request, obj) and (obj is None or not obj.is_system))
+        return bool(
+            super().has_delete_permission(request, obj) and (obj is None or not obj.is_system)
+        )
 
 
 @admin.register(Permission)

@@ -17,7 +17,9 @@ class SettingValueType(models.TextChoices):
 class Setting(UUIDModel, TimeStampedModel):
     key = models.CharField(max_length=150, unique=True)
     value = models.JSONField()
-    value_type = models.CharField(max_length=16, choices=SettingValueType.choices, default=SettingValueType.STRING)
+    value_type = models.CharField(
+        max_length=16, choices=SettingValueType.choices, default=SettingValueType.STRING
+    )
     group = models.CharField(max_length=64, default="general", db_index=True)
     is_public = models.BooleanField(default=False)
     description = models.TextField(blank=True)
@@ -25,7 +27,9 @@ class Setting(UUIDModel, TimeStampedModel):
     def clean(self):
         valid = {
             SettingValueType.STRING: lambda value: isinstance(value, str),
-            SettingValueType.INTEGER: lambda value: isinstance(value, int) and not isinstance(value, bool),
+            SettingValueType.INTEGER: lambda value: (
+                isinstance(value, int) and not isinstance(value, bool)
+            ),
             SettingValueType.BOOLEAN: lambda value: isinstance(value, bool),
             SettingValueType.JSON: lambda _value: True,
         }
@@ -63,5 +67,9 @@ class IdempotencyRecord(UUIDModel):
     expires_at = models.DateTimeField(db_index=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["user", "key_hash"], name="core_idempotency_user_key_unique")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "key_hash"], name="core_idempotency_user_key_unique"
+            )
+        ]
         indexes = [models.Index(fields=["expires_at"], name="core_idempotency_expiry_idx")]

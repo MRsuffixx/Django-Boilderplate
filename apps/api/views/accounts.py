@@ -1,6 +1,5 @@
 from django.db import transaction
-from rest_framework import generics, mixins, viewsets
-from rest_framework.decorators import action
+from rest_framework import generics, viewsets
 
 from apps.accounts.models import User, UserPreferences, UserProfile
 from apps.api.serializers.accounts import (
@@ -11,7 +10,6 @@ from apps.api.serializers.accounts import (
     UserSerializer,
 )
 from apps.audit.services import AuditService
-from apps.authorization.services import PermissionService
 from common.permissions import HasPermission
 from common.responses import success_response
 
@@ -88,15 +86,30 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         }.get(self.action, "users.view")
 
     def perform_create(self, serializer):
-        raise NotImplementedError("Use the registration or administrative account service.")
+        from common.exceptions import APIException
+
+        raise APIException(
+            "Use the registration or administrative account service.",
+            code="METHOD_NOT_ALLOWED",
+            status_code=405,
+        )
 
     @transaction.atomic
     def perform_update(self, serializer):
         before = {field: getattr(serializer.instance, field) for field in serializer.validated_data}
         user = serializer.save()
-        AuditService.record(action="user.updated", target=user, actor=self.request.user, request=self.request, before=before, after=serializer.validated_data)
+        AuditService.record(
+            action="user.updated",
+            target=user,
+            actor=self.request.user,
+            request=self.request,
+            before=before,
+            after=serializer.validated_data,
+        )
 
     def destroy(self, request, *args, **kwargs):
         from common.exceptions import APIException
 
-        raise APIException("Use the account deletion service.", code="METHOD_NOT_ALLOWED", status_code=405)
+        raise APIException(
+            "Use the account deletion service.", code="METHOD_NOT_ALLOWED", status_code=405
+        )

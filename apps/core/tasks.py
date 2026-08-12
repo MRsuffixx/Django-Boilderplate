@@ -11,4 +11,6 @@ from common.services.email import EmailService
     max_retries=5,
 )
 def send_templated_email(template: str, recipient: str, subject: str, context: dict) -> int:
-    return EmailService.send(template=template, recipient=recipient, subject=subject, context=context)
+    return EmailService.send(
+        template=template, recipient=recipient, subject=subject, context=context
+    )

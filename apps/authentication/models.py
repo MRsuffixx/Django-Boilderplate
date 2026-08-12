@@ -15,7 +15,9 @@ class TokenPurpose(models.TextChoices):
 
 
 class OneTimeToken(UUIDModel):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="one_time_tokens")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="one_time_tokens"
+    )
     purpose = models.CharField(max_length=32, choices=TokenPurpose.choices)
     token_hash = models.CharField(max_length=64, unique=True)
     metadata = models.JSONField(default=dict, blank=True)
@@ -24,7 +26,9 @@ class OneTimeToken(UUIDModel):
     used_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        indexes = [models.Index(fields=["user", "purpose", "used_at"], name="auth_token_user_purpose_idx")]
+        indexes = [
+            models.Index(fields=["user", "purpose", "used_at"], name="auth_token_user_purpose_idx")
+        ]
 
     @property
     def is_usable(self) -> bool:
@@ -32,7 +36,9 @@ class OneTimeToken(UUIDModel):
 
 
 class UserSession(UUIDModel):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="user_sessions")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="user_sessions"
+    )
     identifier = models.CharField(max_length=32, unique=True, editable=False)
     session_key_hash = models.CharField(max_length=64, unique=True, editable=False)
     encrypted_session_key = models.TextField(editable=False)
@@ -48,7 +54,11 @@ class UserSession(UUIDModel):
 
     class Meta:
         ordering = ["-last_activity_at"]
-        indexes = [models.Index(fields=["user", "revoked_at", "last_activity_at"], name="auth_session_active_idx")]
+        indexes = [
+            models.Index(
+                fields=["user", "revoked_at", "last_activity_at"], name="auth_session_active_idx"
+            )
+        ]
 
     @property
     def is_revoked(self) -> bool:
@@ -56,7 +66,9 @@ class UserSession(UUIDModel):
 
 
 class TwoFactorCredential(UUIDModel):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="two_factor")
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="two_factor"
+    )
     encrypted_secret = models.TextField(editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     confirmed_at = models.DateTimeField(null=True, blank=True)
@@ -68,10 +80,16 @@ class TwoFactorCredential(UUIDModel):
 
 
 class RecoveryCode(UUIDModel):
-    credential = models.ForeignKey(TwoFactorCredential, on_delete=models.CASCADE, related_name="recovery_codes")
+    credential = models.ForeignKey(
+        TwoFactorCredential, on_delete=models.CASCADE, related_name="recovery_codes"
+    )
     code_hash = models.CharField(max_length=64, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     used_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["credential", "code_hash"], name="auth_recovery_code_unique")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["credential", "code_hash"], name="auth_recovery_code_unique"
+            )
+        ]

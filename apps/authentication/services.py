@@ -11,10 +11,16 @@ from django.contrib.sessions.models import Session
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
-from user_agents import parse as parse_user_agent
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+from user_agents import parse as parse_user_agent
 
-from apps.accounts.models import AccountStatus, User, UserPreferences, UserProfile, UserSecuritySettings
+from apps.accounts.models import (
+    AccountStatus,
+    User,
+    UserPreferences,
+    UserProfile,
+    UserSecuritySettings,
+)
 from apps.audit.services import AuditService
 from apps.authentication.models import (
     OneTimeToken,
@@ -26,7 +32,7 @@ from apps.authentication.models import (
 from apps.authorization.models import Role, UserRole
 from apps.security.models import SecurityEventType
 from apps.security.services import LoginProtectionService, SecurityEventService
-from common.crypto import decrypt_value, encrypt_value, generate_token, keyed_hash, secure_compare
+from common.crypto import decrypt_value, encrypt_value, generate_token, keyed_hash
 from common.exceptions import APIException
 from common.services.email import EmailService
 from common.utils.network import get_client_ip
@@ -37,7 +43,9 @@ class TokenService:
     @transaction.atomic
     def issue(*, user: User, purpose: str, ttl: timedelta, metadata: dict | None = None) -> str:
         now = timezone.now()
-        OneTimeToken.objects.filter(user=user, purpose=purpose, used_at__isnull=True).update(used_at=now)
+        OneTimeToken.objects.filter(user=user, purpose=purpose, used_at__isnull=True).update(
+            used_at=now
+        )
         raw = generate_token()
         OneTimeToken.objects.create(
             user=user,
@@ -53,9 +61,13 @@ class TokenService:
     def consume(*, raw_token: str, purpose: str) -> OneTimeToken:
         token_hash = keyed_hash(raw_token, purpose=f"one-time:{purpose}")
         try:
-            token = OneTimeToken.objects.select_for_update().select_related("user").get(
-                token_hash=token_hash,
-                purpose=purpose,
+            token = (
+                OneTimeToken.objects.select_for_update()
+                .select_related("user")
+                .get(
+                    token_hash=token_hash,
+                    purpose=purpose,
+                )
             )
         except OneTimeToken.DoesNotExist as exc:
             raise APIException("This token is invalid or expired.", code="INVALID_TOKEN") from exc
@@ -88,7 +100,15 @@ class SessionService:
         key_hash = cls._hash(session_key)
         agent_text = request.META.get("HTTP_USER_AGENT", "")[:2000]
         agent = parse_user_agent(agent_text)
-        device = "mobile" if agent.is_mobile else "tablet" if agent.is_tablet else "pc" if agent.is_pc else "other"
+        device = (
+            "mobile"
+            if agent.is_mobile
+            else "tablet"
+            if agent.is_tablet
+            else "pc"
+            if agent.is_pc
+            else "other"
+        )
         existing_device = UserSession.objects.filter(
             user=user,
             user_agent=agent_text,
@@ -145,7 +165,9 @@ class SessionService:
         )
 
     @classmethod
-    def revoke_all(cls, *, user: User, actor=None, request=None, exclude_current: bool = False) -> int:
+    def revoke_all(
+        cls, *, user: User, actor=None, request=None, exclude_current: bool = False
+    ) -> int:
         sessions = UserSession.objects.filter(user=user, revoked_at__isnull=True)
         current = cls.current(request) if request else None
         if exclude_current and current:
@@ -167,8 +189,12 @@ class TwoFactorService:
     @transaction.atomic
     def begin_setup(cls, *, user: User) -> tuple[str, str]:
         TwoFactorCredential.objects.filter(user=user, confirmed_at__isnull=True).delete()
-        if TwoFactorCredential.objects.filter(user=user, confirmed_at__isnull=False, disabled_at__isnull=True).exists():
-            raise APIException("Two-factor authentication is already enabled.", code="CONFLICT", status_code=409)
+        if TwoFactorCredential.objects.filter(
+            user=user, confirmed_at__isnull=False, disabled_at__isnull=True
+        ).exists():
+            raise APIException(
+                "Two-factor authentication is already enabled.", code="CONFLICT", status_code=409
+            )
         secret = pyotp.random_base32()
         TwoFactorCredential.objects.create(
             user=user,
@@ -181,17 +207,25 @@ class TwoFactorService:
     @transaction.atomic
     def confirm_setup(cls, *, user: User, code: str, request=None) -> list[str]:
         try:
-            credential = TwoFactorCredential.objects.select_for_update().get(user=user, confirmed_at__isnull=True)
+            credential = TwoFactorCredential.objects.select_for_update().get(
+                user=user, confirmed_at__isnull=True
+            )
         except TwoFactorCredential.DoesNotExist as exc:
-            raise APIException("No pending two-factor setup exists.", code="RESOURCE_NOT_FOUND", status_code=404) from exc
+            raise APIException(
+                "No pending two-factor setup exists.", code="RESOURCE_NOT_FOUND", status_code=404
+            ) from exc
         secret = decrypt_value(credential.encrypted_secret, purpose="totp-secret")
         if not pyotp.TOTP(secret).verify(code, valid_window=1):
-            raise APIException("The authentication code is invalid.", code="AUTHENTICATION_FAILED", status_code=401)
+            raise APIException(
+                "The authentication code is invalid.", code="AUTHENTICATION_FAILED", status_code=401
+            )
         credential.confirmed_at = timezone.now()
         credential.disabled_at = None
         credential.save(update_fields=["confirmed_at", "disabled_at"])
         codes = cls._replace_recovery_codes(credential)
-        SecurityEventService.record(SecurityEventType.TWO_FACTOR_ENABLED, user=user, request=request)
+        SecurityEventService.record(
+            SecurityEventType.TWO_FACTOR_ENABLED, user=user, request=request
+        )
         AuditService.record(action="two_factor.enabled", target=user, actor=user, request=request)
         return codes
 
@@ -230,7 +264,10 @@ class TwoFactorService:
         credential.recovery_codes.all().delete()
         codes = [secrets.token_hex(5).upper() for _ in range(cls.recovery_code_count)]
         RecoveryCode.objects.bulk_create(
-            [RecoveryCode(credential=credential, code_hash=cls._recovery_hash(code)) for code in codes]
+            [
+                RecoveryCode(credential=credential, code_hash=cls._recovery_hash(code))
+                for code in codes
+            ]
         )
         return codes
 
@@ -239,31 +276,45 @@ class TwoFactorService:
     def regenerate_codes(cls, *, user: User, code: str, request=None) -> list[str]:
         valid, _ = cls.verify(user=user, code=code)
         if not valid:
-            raise APIException("The authentication code is invalid.", code="AUTHENTICATION_FAILED", status_code=401)
-        credential = TwoFactorCredential.objects.select_for_update().get(user=user, disabled_at__isnull=True)
+            raise APIException(
+                "The authentication code is invalid.", code="AUTHENTICATION_FAILED", status_code=401
+            )
+        credential = TwoFactorCredential.objects.select_for_update().get(
+            user=user, disabled_at__isnull=True
+        )
         codes = cls._replace_recovery_codes(credential)
-        AuditService.record(action="two_factor.recovery_codes_regenerated", target=user, actor=user, request=request)
+        AuditService.record(
+            action="two_factor.recovery_codes_regenerated", target=user, actor=user, request=request
+        )
         return codes
 
     @classmethod
     @transaction.atomic
     def disable(cls, *, user: User, password: str, code: str, request=None) -> None:
         if not user.check_password(password):
-            raise APIException("Authentication failed.", code="AUTHENTICATION_FAILED", status_code=401)
+            raise APIException(
+                "Authentication failed.", code="AUTHENTICATION_FAILED", status_code=401
+            )
         valid, _ = cls.verify(user=user, code=code)
         if not valid:
-            raise APIException("The authentication code is invalid.", code="AUTHENTICATION_FAILED", status_code=401)
+            raise APIException(
+                "The authentication code is invalid.", code="AUTHENTICATION_FAILED", status_code=401
+            )
         credential = TwoFactorCredential.objects.select_for_update().get(user=user)
         credential.disabled_at = timezone.now()
         credential.save(update_fields=["disabled_at"])
         credential.recovery_codes.filter(used_at__isnull=True).update(used_at=timezone.now())
-        SecurityEventService.record(SecurityEventType.TWO_FACTOR_DISABLED, user=user, request=request)
+        SecurityEventService.record(
+            SecurityEventType.TWO_FACTOR_DISABLED, user=user, request=request
+        )
         AuditService.record(action="two_factor.disabled", target=user, actor=user, request=request)
 
 
 class AuthenticationService:
     @staticmethod
-    def login(*, request, identifier: str, password: str, code: str = "", remember_me: bool = False) -> tuple[User, UserSession]:
+    def login(
+        *, request, identifier: str, password: str, code: str = "", remember_me: bool = False
+    ) -> tuple[User, UserSession]:
         ip = get_client_ip(request)
         lock_state = LoginProtectionService.check(identifier, ip)
         if lock_state.locked:
@@ -282,24 +333,37 @@ class AuthenticationService:
                 metadata={"identifier_hash": LoginProtectionService._digest(identifier)},
             )
             code_name = "ACCOUNT_LOCKED" if new_state.locked else "AUTHENTICATION_FAILED"
-            raise APIException("Invalid credentials.", code=code_name, status_code=429 if new_state.locked else 401)
-        if user.status == AccountStatus.BANNED or user.bans.filter(
-            revoked_at__isnull=True, starts_at__lte=timezone.now()
-        ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())).exists():
-            raise APIException("This account is unavailable.", code="ACCOUNT_BANNED", status_code=403)
+            raise APIException(
+                "Invalid credentials.", code=code_name, status_code=429 if new_state.locked else 401
+            )
+        if (
+            user.status == AccountStatus.BANNED
+            or user.bans.filter(revoked_at__isnull=True, starts_at__lte=timezone.now())
+            .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()))
+            .exists()
+        ):
+            raise APIException(
+                "This account is unavailable.", code="ACCOUNT_BANNED", status_code=403
+            )
         if user.status != AccountStatus.ACTIVE:
-            raise APIException("This account is unavailable.", code="AUTHENTICATION_FAILED", status_code=403)
+            raise APIException(
+                "This account is unavailable.", code="AUTHENTICATION_FAILED", status_code=403
+            )
         try:
             two_factor_enabled = settings.ENABLE_TWO_FACTOR and user.two_factor.is_enabled
         except TwoFactorCredential.DoesNotExist:
             two_factor_enabled = False
         if two_factor_enabled:
             if not code:
-                raise APIException("A two-factor code is required.", code="TWO_FACTOR_REQUIRED", status_code=401)
-            valid, recovery_used = TwoFactorService.verify(user=user, code=code)
+                raise APIException(
+                    "A two-factor code is required.", code="TWO_FACTOR_REQUIRED", status_code=401
+                )
+            valid, _ = TwoFactorService.verify(user=user, code=code)
             if not valid:
                 LoginProtectionService.register_failure(identifier, ip)
-                raise APIException("Invalid credentials.", code="AUTHENTICATION_FAILED", status_code=401)
+                raise APIException(
+                    "Invalid credentials.", code="AUTHENTICATION_FAILED", status_code=401
+                )
         LoginProtectionService.reset(identifier, ip)
         login(request, user)
         request.session.set_expiry(60 * 60 * 24 * 30 if remember_me else 0)
@@ -309,7 +373,9 @@ class AuthenticationService:
         user.save(update_fields=["last_login_ip", "last_login", "updated_at"])
         SecurityEventService.record(SecurityEventType.LOGIN_SUCCESS, user=user, request=request)
         if is_new_device:
-            SecurityEventService.record(SecurityEventType.NEW_DEVICE_LOGIN, user=user, request=request)
+            SecurityEventService.record(
+                SecurityEventType.NEW_DEVICE_LOGIN, user=user, request=request
+            )
             preferences, _ = UserPreferences.objects.get_or_create(user=user)
             security_settings, _ = UserSecuritySettings.objects.get_or_create(user=user)
             if preferences.security_emails and security_settings.notify_new_device:
@@ -327,7 +393,15 @@ class AuthenticationService:
 class AccountService:
     @staticmethod
     @transaction.atomic
-    def register_user(*, email: str, username: str, password: str, first_name: str = "", last_name: str = "", request=None) -> User:
+    def register_user(
+        *,
+        email: str,
+        username: str,
+        password: str,
+        first_name: str = "",
+        last_name: str = "",
+        request=None,
+    ) -> User:
         validate_password(password)
         try:
             user = User.objects.create_user(
@@ -338,7 +412,9 @@ class AccountService:
                 last_name=last_name,
             )
         except IntegrityError as exc:
-            raise APIException("An account with those details already exists.", code="CONFLICT", status_code=409) from exc
+            raise APIException(
+                "An account with those details already exists.", code="CONFLICT", status_code=409
+            ) from exc
         UserProfile.objects.create(user=user)
         UserPreferences.objects.create(user=user)
         UserSecuritySettings.objects.create(user=user)
@@ -350,13 +426,22 @@ class AccountService:
             purpose=TokenPurpose.EMAIL_VERIFICATION,
             ttl=timedelta(hours=24),
         )
-        AuditService.record(action="user.created", target=user, actor=user, request=request, after={"status": user.status})
+        AuditService.record(
+            action="user.created",
+            target=user,
+            actor=user,
+            request=request,
+            after={"status": user.status},
+        )
         transaction.on_commit(
             lambda: EmailService.enqueue(
                 template="email_verification",
                 recipient=user.email,
                 subject=f"Verify your {settings.SITE_NAME} email",
-                context={"user": user, "verification_url": f"{settings.SITE_URL}/verify-email?token={raw_token}"},
+                context={
+                    "user": user,
+                    "verification_url": f"{settings.SITE_URL}/verify-email?token={raw_token}",
+                },
             )
         )
         return user
@@ -384,15 +469,22 @@ class AccountService:
 
     @staticmethod
     def resend_verification(*, email: str) -> None:
-        user = User.objects.filter(email__iexact=email.strip(), email_verified_at__isnull=True, is_active=True).first()
+        user = User.objects.filter(
+            email__iexact=email.strip(), email_verified_at__isnull=True, is_active=True
+        ).first()
         if not user:
             return
-        raw = TokenService.issue(user=user, purpose=TokenPurpose.EMAIL_VERIFICATION, ttl=timedelta(hours=24))
+        raw = TokenService.issue(
+            user=user, purpose=TokenPurpose.EMAIL_VERIFICATION, ttl=timedelta(hours=24)
+        )
         EmailService.enqueue(
             template="email_verification",
             recipient=user.email,
             subject=f"Verify your {settings.SITE_NAME} email",
-            context={"user": user, "verification_url": f"{settings.SITE_URL}/verify-email?token={raw}"},
+            context={
+                "user": user,
+                "verification_url": f"{settings.SITE_URL}/verify-email?token={raw}",
+            },
         )
 
     @staticmethod
@@ -442,7 +534,9 @@ class AccountService:
     def change_password(*, user: User, old_password: str, new_password: str, request=None) -> None:
         locked = User.objects.select_for_update().get(pk=user.pk)
         if not locked.check_password(old_password):
-            raise APIException("Authentication failed.", code="AUTHENTICATION_FAILED", status_code=401)
+            raise APIException(
+                "Authentication failed.", code="AUTHENTICATION_FAILED", status_code=401
+            )
         validate_password(new_password, user=locked)
         locked.set_password(new_password)
         locked.save(update_fields=["password", "updated_at"])
@@ -450,7 +544,10 @@ class AccountService:
         security_settings.password_changed_at = timezone.now()
         security_settings.save(update_fields=["password_changed_at", "updated_at"])
         SessionService.revoke_all(user=locked, actor=locked, request=request, exclude_current=True)
-        SecurityEventService.record(SecurityEventType.PASSWORD_CHANGED, user=locked, request=request)
+        TokenService.revoke_all_jwt(user=locked)
+        SecurityEventService.record(
+            SecurityEventType.PASSWORD_CHANGED, user=locked, request=request
+        )
         AuditService.record(action="password.changed", target=locked, actor=locked, request=request)
         transaction.on_commit(
             lambda: EmailService.enqueue(
@@ -465,9 +562,13 @@ class AccountService:
     def request_email_change(*, user: User, password: str, new_email: str) -> None:
         normalized = User.objects.normalize_email_address(new_email)
         if not user.check_password(password):
-            raise APIException("Authentication failed.", code="AUTHENTICATION_FAILED", status_code=401)
+            raise APIException(
+                "Authentication failed.", code="AUTHENTICATION_FAILED", status_code=401
+            )
         if User.objects.filter(email__iexact=normalized).exclude(pk=user.pk).exists():
-            raise APIException("That email address is unavailable.", code="CONFLICT", status_code=409)
+            raise APIException(
+                "That email address is unavailable.", code="CONFLICT", status_code=409
+            )
         raw = TokenService.issue(
             user=user,
             purpose=TokenPurpose.EMAIL_CHANGE,
@@ -478,7 +579,10 @@ class AccountService:
             template="email_verification",
             recipient=normalized,
             subject=f"Confirm your new {settings.SITE_NAME} email",
-            context={"user": user, "verification_url": f"{settings.SITE_URL}/confirm-email-change?token={raw}"},
+            context={
+                "user": user,
+                "verification_url": f"{settings.SITE_URL}/confirm-email-change?token={raw}",
+            },
         )
 
     @staticmethod
@@ -489,14 +593,23 @@ class AccountService:
         old_email = user.email
         new_email = token.metadata["new_email"]
         if User.objects.filter(email__iexact=new_email).exclude(pk=user.pk).exists():
-            raise APIException("That email address is unavailable.", code="CONFLICT", status_code=409)
+            raise APIException(
+                "That email address is unavailable.", code="CONFLICT", status_code=409
+            )
         user.email = new_email
         user.email_verified_at = timezone.now()
         user.save(update_fields=["email", "email_verified_at", "updated_at"])
         SessionService.revoke_all(user=user, actor=user, request=request, exclude_current=True)
         TokenService.revoke_all_jwt(user=user)
         SecurityEventService.record(SecurityEventType.EMAIL_CHANGED, user=user, request=request)
-        AuditService.record(action="email.changed", target=user, actor=user, request=request, before={"email": old_email}, after={"email": new_email})
+        AuditService.record(
+            action="email.changed",
+            target=user,
+            actor=user,
+            request=request,
+            before={"email": old_email},
+            after={"email": new_email},
+        )
         transaction.on_commit(
             lambda: EmailService.enqueue(
                 template="email_changed",
@@ -517,8 +630,17 @@ class AccountService:
             locked.full_clean(exclude={"password"}, validate_unique=False)
             locked.save(update_fields=["username", "updated_at"])
         except IntegrityError as exc:
-            raise APIException("That username is unavailable.", code="CONFLICT", status_code=409) from exc
-        AuditService.record(action="username.changed", target=locked, actor=locked, request=request, before={"username": old}, after={"username": locked.username})
+            raise APIException(
+                "That username is unavailable.", code="CONFLICT", status_code=409
+            ) from exc
+        AuditService.record(
+            action="username.changed",
+            target=locked,
+            actor=locked,
+            request=request,
+            before={"username": old},
+            after={"username": locked.username},
+        )
         return locked
 
     @staticmethod
@@ -526,20 +648,30 @@ class AccountService:
     def deactivate(*, user: User, password: str, request=None) -> None:
         locked = User.objects.select_for_update().get(pk=user.pk)
         if not locked.check_password(password):
-            raise APIException("Authentication failed.", code="AUTHENTICATION_FAILED", status_code=401)
+            raise APIException(
+                "Authentication failed.", code="AUTHENTICATION_FAILED", status_code=401
+            )
         locked.status = AccountStatus.DEACTIVATED
         locked.is_active = False
         locked.save(update_fields=["status", "is_active", "updated_at"])
         SessionService.revoke_all(user=locked, actor=locked, request=request)
         TokenService.revoke_all_jwt(user=locked)
-        SecurityEventService.record(SecurityEventType.ACCOUNT_DEACTIVATED, user=locked, request=request)
-        AuditService.record(action="account.deactivated", target=locked, actor=locked, request=request)
+        SecurityEventService.record(
+            SecurityEventType.ACCOUNT_DEACTIVATED, user=locked, request=request
+        )
+        AuditService.record(
+            action="account.deactivated", target=locked, actor=locked, request=request
+        )
 
     @staticmethod
     def request_deletion(*, user: User, password: str) -> None:
         if not user.check_password(password):
-            raise APIException("Authentication failed.", code="AUTHENTICATION_FAILED", status_code=401)
-        raw = TokenService.issue(user=user, purpose=TokenPurpose.ACCOUNT_DELETION, ttl=timedelta(hours=1))
+            raise APIException(
+                "Authentication failed.", code="AUTHENTICATION_FAILED", status_code=401
+            )
+        raw = TokenService.issue(
+            user=user, purpose=TokenPurpose.ACCOUNT_DELETION, ttl=timedelta(hours=1)
+        )
         EmailService.enqueue(
             template="account_security_warning",
             recipient=user.email,

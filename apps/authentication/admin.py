@@ -5,7 +5,16 @@ from apps.authentication.models import OneTimeToken, RecoveryCode, TwoFactorCred
 
 @admin.register(UserSession)
 class UserSessionAdmin(admin.ModelAdmin):
-    list_display = ["identifier", "user", "ip_address", "browser", "operating_system", "device", "last_activity_at", "revoked_at"]
+    list_display = [
+        "identifier",
+        "user",
+        "ip_address",
+        "browser",
+        "operating_system",
+        "device",
+        "last_activity_at",
+        "revoked_at",
+    ]
     list_filter = ["device", "revoked_at", "created_at", "last_activity_at"]
     search_fields = ["identifier", "user__email", "ip_address", "browser", "operating_system"]
     autocomplete_fields = ["user"]

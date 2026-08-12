@@ -4,7 +4,6 @@ from django.db import transaction
 from apps.authorization.models import Permission, Role, RolePermission
 from apps.authorization.registry import get_registered_permissions
 
-
 ROLE_DEFINITIONS = {
     "super-admin": {
         "name": "Super Admin",
@@ -22,7 +21,13 @@ ROLE_DEFINITIONS = {
         "name": "Moderator",
         "description": "User safety and audit visibility.",
         "priority": 500,
-        "permissions": ["users.view", "users.update", "users.ban", "audit.view", "security_events.view"],
+        "permissions": [
+            "users.view",
+            "users.update",
+            "users.ban",
+            "audit.view",
+            "security_events.view",
+        ],
     },
     "user": {
         "name": "User",
@@ -57,9 +62,15 @@ class Command(BaseCommand):
                     "is_system": True,
                 },
             )
-            desired = set(registry) if definition["permissions"] == "*" else set(definition["permissions"])
+            desired = (
+                set(registry)
+                if definition["permissions"] == "*"
+                else set(definition["permissions"])
+            )
             for codename in desired:
-                RolePermission.objects.get_or_create(role=role, permission=permission_rows[codename])
+                RolePermission.objects.get_or_create(
+                    role=role, permission=permission_rows[codename]
+                )
 
         from apps.core.models import FeatureFlag, Setting, SettingValueType
 
@@ -77,4 +88,8 @@ class Command(BaseCommand):
             key="registration.enabled",
             defaults={"enabled": True, "description": "Registration feature switch."},
         )
-        self.stdout.write(self.style.SUCCESS(f"Synchronized {len(registry)} permissions and {len(ROLE_DEFINITIONS)} roles."))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Synchronized {len(registry)} permissions and {len(ROLE_DEFINITIONS)} roles."
+            )
+        )

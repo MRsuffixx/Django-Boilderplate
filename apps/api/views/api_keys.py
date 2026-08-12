@@ -26,7 +26,9 @@ class APIKeyViewSet(viewsets.ReadOnlyModelViewSet):
             raise APIException("API keys are disabled.", code="FEATURE_DISABLED", status_code=404)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        api_key, raw = APIKeyService.create(owner=request.user, actor=request.user, request=request, **serializer.validated_data)
+        api_key, raw = APIKeyService.create(
+            owner=request.user, actor=request.user, request=request, **serializer.validated_data
+        )
         data = self.get_serializer(api_key).data
         data["key"] = raw
         return success_response(data, status=status.HTTP_201_CREATED)

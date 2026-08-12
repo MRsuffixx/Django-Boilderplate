@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from common.models import TimeStampedModel, UUIDModel
 
 
-def avatar_upload_to(instance: "User", filename: str) -> str:
+def avatar_upload_to(instance: User, filename: str) -> str:
     extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
     return f"avatars/{instance.pk}/{uuid.uuid4().hex}.{extension}"
 
@@ -55,7 +55,9 @@ class UserManager(BaseUserManager["User"]):
         extra_fields.setdefault("status", AccountStatus.PENDING)
         return self._create_user(email, username, password, **extra_fields)
 
-    def create_superuser(self, email: str, username: str, password: str | None = None, **extra_fields):
+    def create_superuser(
+        self, email: str, username: str, password: str | None = None, **extra_fields
+    ):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)
@@ -78,7 +80,9 @@ class User(UUIDModel, AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(_("last name"), max_length=150, blank=True)
     avatar = models.ImageField(upload_to=avatar_upload_to, blank=True)
     phone = models.CharField(max_length=32, blank=True)
-    status = models.CharField(max_length=24, choices=AccountStatus.choices, default=AccountStatus.PENDING, db_index=True)
+    status = models.CharField(
+        max_length=24, choices=AccountStatus.choices, default=AccountStatus.PENDING, db_index=True
+    )
     email_verified_at = models.DateTimeField(null=True, blank=True)
     phone_verified_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
@@ -99,7 +103,9 @@ class User(UUIDModel, AbstractBaseUser, PermissionsMixin):
             models.UniqueConstraint(Lower("email"), name="accounts_user_email_ci_unique"),
             models.UniqueConstraint(Lower("username"), name="accounts_user_username_ci_unique"),
         ]
-        indexes = [models.Index(fields=["status", "created_at"], name="acct_user_status_created_idx")]
+        indexes = [
+            models.Index(fields=["status", "created_at"], name="acct_user_status_created_idx")
+        ]
 
     def save(self, *args, **kwargs):
         self.email = UserManager.normalize_email_address(self.email)
@@ -176,10 +182,13 @@ class UserBan(UUIDModel):
 
     class Meta:
         ordering = ["-created_at"]
-        indexes = [models.Index(fields=["user", "revoked_at", "expires_at"], name="acct_ban_active_idx")]
+        indexes = [
+            models.Index(fields=["user", "revoked_at", "expires_at"], name="acct_ban_active_idx")
+        ]
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=models.F("starts_at")),
+                condition=models.Q(expires_at__isnull=True)
+                | models.Q(expires_at__gt=models.F("starts_at")),
                 name="acct_ban_expiry_after_start",
             )
         ]
@@ -187,7 +196,11 @@ class UserBan(UUIDModel):
     @property
     def is_active(self) -> bool:
         now = timezone.now()
-        return self.revoked_at is None and self.starts_at <= now and (self.expires_at is None or self.expires_at > now)
+        return (
+            self.revoked_at is None
+            and self.starts_at <= now
+            and (self.expires_at is None or self.expires_at > now)
+        )
 
     def __str__(self) -> str:
         return f"Ban for {self.user}"

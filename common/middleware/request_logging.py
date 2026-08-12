@@ -15,7 +15,11 @@ class RequestLoggingMiddleware:
 
     def __call__(self, request):
         started = time.monotonic()
-        user_id = str(request.user.pk) if getattr(request, "user", None) and request.user.is_authenticated else "-"
+        user_id = (
+            str(request.user.pk)
+            if getattr(request, "user", None) and request.user.is_authenticated
+            else "-"
+        )
         token = user_id_context.set(user_id)
         try:
             response = self.get_response(request)

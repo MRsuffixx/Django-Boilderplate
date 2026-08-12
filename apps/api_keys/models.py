@@ -6,7 +6,9 @@ from common.models import UUIDModel
 
 
 class APIKey(UUIDModel):
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="api_keys")
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="api_keys"
+    )
     name = models.CharField(max_length=100)
     prefix = models.CharField(max_length=16, unique=True, db_index=True)
     key_hash = models.CharField(max_length=64, editable=False)
@@ -19,11 +21,17 @@ class APIKey(UUIDModel):
 
     class Meta:
         ordering = ["-created_at"]
-        indexes = [models.Index(fields=["owner", "revoked_at", "expires_at"], name="api_key_owner_active_idx")]
+        indexes = [
+            models.Index(
+                fields=["owner", "revoked_at", "expires_at"], name="api_key_owner_active_idx"
+            )
+        ]
 
     @property
     def is_active(self) -> bool:
-        return self.revoked_at is None and (self.expires_at is None or self.expires_at > timezone.now())
+        return self.revoked_at is None and (
+            self.expires_at is None or self.expires_at > timezone.now()
+        )
 
     def __str__(self) -> str:
         return f"{self.name} ({self.prefix})"

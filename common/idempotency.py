@@ -24,20 +24,42 @@ def idempotent(*, ttl: timedelta = timedelta(hours=24)):
             if not raw_key:
                 return method(view, request, *args, **kwargs)
             if not request.user.is_authenticated:
-                raise APIException("Authentication is required for idempotency.", code="AUTHENTICATION_REQUIRED", status_code=401)
+                raise APIException(
+                    "Authentication is required for idempotency.",
+                    code="AUTHENTICATION_REQUIRED",
+                    status_code=401,
+                )
             if len(raw_key) > 255:
                 raise APIException("Invalid Idempotency-Key.", code="VALIDATION_ERROR")
             key_hash = keyed_hash(raw_key, purpose="idempotency")
             body = request.body or b""
-            request_hash = hashlib.sha256(request.method.encode() + request.path.encode() + body).hexdigest()
+            request_hash = hashlib.sha256(
+                request.method.encode() + request.path.encode() + body
+            ).hexdigest()
             with transaction.atomic():
-                record = IdempotencyRecord.objects.select_for_update().filter(user=request.user, key_hash=key_hash).first()
+                record = (
+                    IdempotencyRecord.objects.select_for_update()
+                    .filter(user=request.user, key_hash=key_hash)
+                    .first()
+                )
                 if record:
                     if record.request_hash != request_hash:
-                        raise APIException("This Idempotency-Key was used for a different request.", code="CONFLICT", status_code=409)
+                        raise APIException(
+                            "This Idempotency-Key was used for a different request.",
+                            code="CONFLICT",
+                            status_code=409,
+                        )
                     if record.response_status is None:
-                        raise APIException("A request with this Idempotency-Key is in progress.", code="CONFLICT", status_code=409)
-                    return Response(record.response_body, status=record.response_status, headers={"Idempotent-Replayed": "true"})
+                        raise APIException(
+                            "A request with this Idempotency-Key is in progress.",
+                            code="CONFLICT",
+                            status_code=409,
+                        )
+                    return Response(
+                        record.response_body,
+                        status=record.response_status,
+                        headers={"Idempotent-Replayed": "true"},
+                    )
                 try:
                     record = IdempotencyRecord.objects.create(
                         user=request.user,
@@ -48,7 +70,11 @@ def idempotent(*, ttl: timedelta = timedelta(hours=24)):
                         expires_at=timezone.now() + ttl,
                     )
                 except IntegrityError as exc:
-                    raise APIException("A request with this Idempotency-Key is in progress.", code="CONFLICT", status_code=409) from exc
+                    raise APIException(
+                        "A request with this Idempotency-Key is in progress.",
+                        code="CONFLICT",
+                        status_code=409,
+                    ) from exc
                 response = method(view, request, *args, **kwargs)
                 try:
                     json.dumps(response.data)

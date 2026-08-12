@@ -68,7 +68,11 @@ extend-exclude = ["*/migrations/*"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "DJ", "S", "RUF"]
 ignore = [
+  "E501",  # Formatter deliberately leaves some long strings/signatures intact.
   "DJ001", # Nullable strings are intentional for externally sourced data.
+  "DJ012", # Declarative Django models do not always match the generic method-order rule.
+  "RUF012", # Django and DRF intentionally use mutable declarative class attributes.
+  "RUF100", # Settings noqua markers document intentional star-import composition.
   "S101",  # Assertions are idiomatic in tests.
   "S105",  # Test/example settings contain obvious non-secrets.
   "S106",

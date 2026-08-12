@@ -10,7 +10,9 @@ class EmailOrUsernameBackend(ModelBackend):
         if not identifier or not password:
             return None
         try:
-            user = User.objects.get(Q(email__iexact=identifier.strip()) | Q(username__iexact=identifier.strip()))
+            user = User.objects.get(
+                Q(email__iexact=identifier.strip()) | Q(username__iexact=identifier.strip())
+            )
         except (User.DoesNotExist, User.MultipleObjectsReturned):
             User().set_password(password)
             return None

@@ -17,7 +17,9 @@ class APIException(exceptions.APIException):
     default_code = "BAD_REQUEST"
     default_detail = "The request could not be processed."
 
-    def __init__(self, detail=None, *, code: str | None = None, status_code: int | None = None, fields=None):
+    def __init__(
+        self, detail=None, *, code: str | None = None, status_code: int | None = None, fields=None
+    ):
         super().__init__(detail or self.default_detail, code=code or self.default_code)
         if status_code is not None:
             self.status_code = status_code

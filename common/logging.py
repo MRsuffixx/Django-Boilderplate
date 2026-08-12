@@ -19,7 +19,10 @@ SENSITIVE_KEY = re.compile(
 
 def sanitize(value: Any) -> Any:
     if isinstance(value, dict):
-        return {key: "[REDACTED]" if SENSITIVE_KEY.search(str(key)) else sanitize(item) for key, item in value.items()}
+        return {
+            key: "[REDACTED]" if SENSITIVE_KEY.search(str(key)) else sanitize(item)
+            for key, item in value.items()
+        }
     if isinstance(value, (list, tuple)):
         return [sanitize(item) for item in value]
     if value is None or isinstance(value, (str, int, float, bool)):

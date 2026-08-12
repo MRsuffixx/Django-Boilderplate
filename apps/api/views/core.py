@@ -32,13 +32,26 @@ class SettingViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         row = serializer.save()
         row.full_clean()
-        AuditService.record(action="setting.created", target=row, actor=self.request.user, request=self.request, after=serializer.validated_data)
+        AuditService.record(
+            action="setting.created",
+            target=row,
+            actor=self.request.user,
+            request=self.request,
+            after=serializer.validated_data,
+        )
 
     def perform_update(self, serializer):
         before = {field: getattr(serializer.instance, field) for field in serializer.validated_data}
         row = serializer.save()
         row.full_clean()
-        AuditService.record(action="setting.updated", target=row, actor=self.request.user, request=self.request, before=before, after=serializer.validated_data)
+        AuditService.record(
+            action="setting.updated",
+            target=row,
+            actor=self.request.user,
+            request=self.request,
+            before=before,
+            after=serializer.validated_data,
+        )
 
 
 class FeatureFlagViewSet(viewsets.ModelViewSet):
@@ -49,13 +62,28 @@ class FeatureFlagViewSet(viewsets.ModelViewSet):
 
     @property
     def required_permission(self):
-        return "feature_flags.view" if self.action in {"list", "retrieve"} else "feature_flags.update"
+        return (
+            "feature_flags.view" if self.action in {"list", "retrieve"} else "feature_flags.update"
+        )
 
     def perform_create(self, serializer):
         row = serializer.save()
-        AuditService.record(action="feature_flag.created", target=row, actor=self.request.user, request=self.request, after=serializer.validated_data)
+        AuditService.record(
+            action="feature_flag.created",
+            target=row,
+            actor=self.request.user,
+            request=self.request,
+            after=serializer.validated_data,
+        )
 
     def perform_update(self, serializer):
         before = {field: getattr(serializer.instance, field) for field in serializer.validated_data}
         row = serializer.save()
-        AuditService.record(action="feature_flag.updated", target=row, actor=self.request.user, request=self.request, before=before, after=serializer.validated_data)
+        AuditService.record(
+            action="feature_flag.updated",
+            target=row,
+            actor=self.request.user,
+            request=self.request,
+            before=before,
+            after=serializer.validated_data,
+        )

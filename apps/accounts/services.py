@@ -12,7 +12,9 @@ from apps.authentication.services import SessionService, TokenService
 class BanService:
     @staticmethod
     @transaction.atomic
-    def ban(*, user: User, reason: str, actor=None, starts_at=None, expires_at=None, request=None) -> UserBan:
+    def ban(
+        *, user: User, reason: str, actor=None, starts_at=None, expires_at=None, request=None
+    ) -> UserBan:
         locked = User.objects.select_for_update().get(pk=user.pk)
         ban = UserBan.objects.create(
             user=locked,
@@ -43,10 +45,14 @@ class BanService:
             return
         locked.revoked_at = timezone.now()
         locked.save(update_fields=["revoked_at"])
-        still_banned = locked.user.bans.filter(revoked_at__isnull=True, starts_at__lte=timezone.now()).filter(
-            Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
-        ).exists()
+        still_banned = (
+            locked.user.bans.filter(revoked_at__isnull=True, starts_at__lte=timezone.now())
+            .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()))
+            .exists()
+        )
         if not still_banned and locked.user.status == AccountStatus.BANNED:
             locked.user.status = AccountStatus.ACTIVE
             locked.user.save(update_fields=["status", "updated_at"])
-        AuditService.record(action="account.ban_revoked", target=locked.user, actor=actor, request=request)
+        AuditService.record(
+            action="account.ban_revoked", target=locked.user, actor=actor, request=request
+        )

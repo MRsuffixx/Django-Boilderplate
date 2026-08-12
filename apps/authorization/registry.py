@@ -28,7 +28,9 @@ _registry: dict[str, str] = dict(BASE_PERMISSIONS)
 def register_permissions(permissions: dict[str, str] | Iterable[tuple[str, str]]) -> None:
     for codename, description in dict(permissions).items():
         if codename in _registry and _registry[codename] != description:
-            raise ValueError(f"Permission {codename!r} is already registered with a different description")
+            raise ValueError(
+                f"Permission {codename!r} is already registered with a different description"
+            )
         _registry[codename] = description
 
 

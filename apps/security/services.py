@@ -6,9 +6,8 @@ from dataclasses import dataclass
 
 from django.conf import settings
 from django.core.cache import cache
-from django.utils import timezone
 
-from apps.security.models import SecurityEvent, SecurityEventType
+from apps.security.models import SecurityEvent
 from common.utils.network import get_client_ip
 
 logger = logging.getLogger(__name__)
@@ -16,7 +15,9 @@ logger = logging.getLogger(__name__)
 
 class SecurityEventService:
     @staticmethod
-    def record(event_type: str, *, user=None, request=None, metadata: dict | None = None) -> SecurityEvent:
+    def record(
+        event_type: str, *, user=None, request=None, metadata: dict | None = None
+    ) -> SecurityEvent:
         return SecurityEvent.objects.create(
             user=user,
             event_type=event_type,

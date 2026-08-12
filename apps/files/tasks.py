@@ -10,7 +10,9 @@ from apps.files.models import FileStatus, StoredFile
 @shared_task(name="apps.files.tasks.cleanup_unused_files")
 def cleanup_unused_files() -> int:
     cutoff = timezone.now() - timedelta(days=settings.FILE_RETENTION_DAYS)
-    files = StoredFile.objects.filter(status=FileStatus.PENDING, created_at__lt=cutoff, deleted_at__isnull=True)
+    files = StoredFile.objects.filter(
+        status=FileStatus.PENDING, created_at__lt=cutoff, deleted_at__isnull=True
+    )
     count = 0
     for stored_file in files.iterator():
         stored_file.file.delete(save=False)

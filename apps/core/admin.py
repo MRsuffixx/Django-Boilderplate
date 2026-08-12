@@ -21,7 +21,14 @@ class FeatureFlagAdmin(admin.ModelAdmin):
 
 @admin.register(IdempotencyRecord)
 class IdempotencyRecordAdmin(admin.ModelAdmin):
-    list_display = ["user", "request_method", "request_path", "response_status", "created_at", "expires_at"]
+    list_display = [
+        "user",
+        "request_method",
+        "request_path",
+        "response_status",
+        "created_at",
+        "expires_at",
+    ]
     list_filter = ["request_method", "response_status", "created_at", "expires_at"]
     search_fields = ["user__email", "request_path"]
     readonly_fields = [field.name for field in IdempotencyRecord._meta.fields]

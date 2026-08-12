@@ -18,7 +18,9 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ["-created_at"]
 
     def get_queryset(self):
-        return Notification.objects.filter(user=self.request.user).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()))
+        return Notification.objects.filter(user=self.request.user).filter(
+            Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
+        )
 
     def retrieve(self, request, *args, **kwargs):
         return success_response(self.get_serializer(self.get_object()).data)

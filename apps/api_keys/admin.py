@@ -6,7 +6,15 @@ from apps.api_keys.models import APIKey
 
 @admin.register(APIKey)
 class APIKeyAdmin(admin.ModelAdmin):
-    list_display = ["name", "owner", "prefix", "created_at", "last_used_at", "expires_at", "revoked_at"]
+    list_display = [
+        "name",
+        "owner",
+        "prefix",
+        "created_at",
+        "last_used_at",
+        "expires_at",
+        "revoked_at",
+    ]
     list_filter = ["created_at", "last_used_at", "expires_at", "revoked_at"]
     search_fields = ["name", "owner__email", "prefix"]
     autocomplete_fields = ["owner"]

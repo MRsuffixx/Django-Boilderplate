@@ -39,7 +39,11 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_permissions(self, obj) -> list[str]:
         request = self.context.get("request")
-        return sorted(PermissionService.permission_codes(obj)) if request and request.user == obj else []
+        return (
+            sorted(PermissionService.permission_codes(obj))
+            if request and request.user == obj
+            else []
+        )
 
 
 class UserAdminSerializer(serializers.ModelSerializer):
@@ -62,7 +66,14 @@ class UserAdminSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "date_joined", "last_login", "last_login_ip", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "date_joined",
+            "last_login",
+            "last_login_ip",
+            "created_at",
+            "updated_at",
+        ]
 
     def validate_email(self, value):
         normalized = User.objects.normalize_email_address(value)
@@ -92,7 +103,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserPreferencesSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserPreferences
-        fields = ["id", "language", "timezone", "email_notifications", "security_emails", "created_at", "updated_at"]
+        fields = [
+            "id",
+            "language",
+            "timezone",
+            "email_notifications",
+            "security_emails",
+            "created_at",
+            "updated_at",
+        ]
         read_only_fields = ["id", "created_at", "updated_at"]
 
     def validate_language(self, value):
@@ -112,5 +131,13 @@ class UserPreferencesSerializer(serializers.ModelSerializer):
 class SecurityEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = SecurityEvent
-        fields = ["id", "event_type", "ip_address", "user_agent", "request_id", "metadata", "created_at"]
+        fields = [
+            "id",
+            "event_type",
+            "ip_address",
+            "user_agent",
+            "request_id",
+            "metadata",
+            "created_at",
+        ]
         read_only_fields = fields

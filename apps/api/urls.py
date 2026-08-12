@@ -50,7 +50,9 @@ router.register("roles", RoleViewSet, basename="role")
 router.register("permissions", PermissionViewSet, basename="permission")
 router.register("role-permissions", RolePermissionViewSet, basename="role-permission")
 router.register("user-roles", UserRoleViewSet, basename="user-role")
-router.register("permission-overrides", UserPermissionOverrideViewSet, basename="permission-override")
+router.register(
+    "permission-overrides", UserPermissionOverrideViewSet, basename="permission-override"
+)
 router.register("audit-logs", AuditLogViewSet, basename="audit-log")
 router.register("settings", SettingViewSet, basename="setting")
 router.register("feature-flags", FeatureFlagViewSet, basename="feature-flag")
@@ -63,25 +65,37 @@ auth_patterns = [
     path("verify-email/", VerifyEmailView.as_view(), name="verify-email"),
     path("resend-verification/", ResendVerificationView.as_view(), name="resend-verification"),
     path("password-reset/", PasswordResetRequestView.as_view(), name="password-reset"),
-    path("password-reset/confirm/", PasswordResetConfirmView.as_view(), name="password-reset-confirm"),
+    path(
+        "password-reset/confirm/", PasswordResetConfirmView.as_view(), name="password-reset-confirm"
+    ),
     path("password/change/", ChangePasswordView.as_view(), name="password-change"),
     path("email/change/", ChangeEmailView.as_view(), name="email-change"),
     path("email/change/confirm/", ConfirmEmailChangeView.as_view(), name="email-change-confirm"),
     path("username/change/", ChangeUsernameView.as_view(), name="username-change"),
     path("account/deactivate/", DeactivateAccountView.as_view(), name="account-deactivate"),
     path("account/delete/", DeleteAccountRequestView.as_view(), name="account-delete"),
-    path("account/delete/confirm/", DeleteAccountConfirmView.as_view(), name="account-delete-confirm"),
+    path(
+        "account/delete/confirm/", DeleteAccountConfirmView.as_view(), name="account-delete-confirm"
+    ),
     path("2fa/setup/", TwoFactorSetupView.as_view(), name="two-factor-setup"),
     path("2fa/confirm/", TwoFactorConfirmView.as_view(), name="two-factor-confirm"),
     path("2fa/disable/", TwoFactorDisableView.as_view(), name="two-factor-disable"),
-    path("2fa/recovery-codes/regenerate/", RecoveryCodeRegenerateView.as_view(), name="recovery-codes-regenerate"),
+    path(
+        "2fa/recovery-codes/regenerate/",
+        RecoveryCodeRegenerateView.as_view(),
+        name="recovery-codes-regenerate",
+    ),
 ]
 
 urlpatterns = [
     path("auth/", include(auth_patterns)),
     path("users/me/", CurrentUserView.as_view(), name="current-user"),
     path("users/me/profile/", CurrentUserProfileView.as_view(), name="current-user-profile"),
-    path("users/me/preferences/", CurrentUserPreferencesView.as_view(), name="current-user-preferences"),
+    path(
+        "users/me/preferences/",
+        CurrentUserPreferencesView.as_view(),
+        name="current-user-preferences",
+    ),
     path("users/me/security-events/", SecurityEventListView.as_view(), name="security-events"),
     path("", include(router.urls)),
 ]

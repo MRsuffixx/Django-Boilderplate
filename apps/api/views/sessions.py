@@ -3,7 +3,6 @@ from rest_framework.decorators import action
 
 from apps.api.serializers.sessions import UserSessionSerializer
 from apps.authentication.services import SessionService
-from common.exceptions import APIException
 from common.responses import success_response
 
 
@@ -30,7 +29,9 @@ class UserSessionViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="revoke-others")
     def revoke_others(self, request):
-        count = SessionService.revoke_all(user=request.user, actor=request.user, request=request, exclude_current=True)
+        count = SessionService.revoke_all(
+            user=request.user, actor=request.user, request=request, exclude_current=True
+        )
         return success_response({"revoked_count": count})
 
     @action(detail=False, methods=["post"], url_path="revoke-all")
