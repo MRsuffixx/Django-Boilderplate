@@ -4,7 +4,8 @@ x-app: &app
   build:
     context: .
   env_file:
-    - .env
+    - path: .env
+      required: false
   environment: &app-environment
     DJANGO_SETTINGS_MODULE: config.settings.development
     DATABASE_URL: postgresql://app:app@postgres:5432/app

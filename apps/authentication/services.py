@@ -133,7 +133,8 @@ class SessionService:
 
     @classmethod
     def current(cls, request) -> UserSession | None:
-        key = request.session.session_key
+        session = getattr(request, "session", None)
+        key = getattr(session, "session_key", None)
         if not key:
             return None
         return UserSession.objects.filter(session_key_hash=cls._hash(key)).first()

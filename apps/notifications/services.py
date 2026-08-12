@@ -6,6 +6,7 @@ from datetime import datetime
 from django.conf import settings
 from django.db import transaction
 
+from apps.accounts.models import UserPreferences
 from apps.notifications.models import Notification
 from common.services.email import EmailService
 
@@ -34,7 +35,8 @@ class NotificationService:
                 data=message.data,
                 expires_at=message.expires_at,
             )
-        if "email" in channels and user.preferences.email_notifications:
+        preferences, _ = UserPreferences.objects.get_or_create(user=user)
+        if "email" in channels and preferences.email_notifications:
             transaction.on_commit(
                 lambda: EmailService.enqueue(
                     template="notification",

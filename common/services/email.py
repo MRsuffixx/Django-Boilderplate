@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
@@ -31,6 +31,8 @@ class EmailService:
             return {str(key): EmailService._task_context(item) for key, item in value.items()}
         if isinstance(value, (list, tuple)):
             return [EmailService._task_context(item) for item in value]
+        if is_dataclass(value):
+            return EmailService._task_context(asdict(value))
         if hasattr(value, "email"):
             return {
                 "id": str(value.pk),

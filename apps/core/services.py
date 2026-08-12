@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.core.cache import cache
+from django.db import transaction
 
 from apps.core.models import FeatureFlag, Setting
 
@@ -23,13 +24,17 @@ class RuntimeSettingService:
         return value
 
     @classmethod
+    @transaction.atomic
     def set(cls, *, key: str, value, value_type: str, actor=None, **defaults) -> Setting:
         from apps.audit.services import AuditService
 
-        row, created = Setting.objects.update_or_create(
-            key=key,
-            defaults={"value": value, "value_type": value_type, **defaults},
-        )
+        row = Setting.objects.select_for_update().filter(key=key).first()
+        created = row is None
+        row = row or Setting(key=key)
+        row.value = value
+        row.value_type = value_type
+        for field, field_value in defaults.items():
+            setattr(row, field, field_value)
         row.full_clean()
         row.save()
         cache.delete(f"runtime-setting:{key}:0")

@@ -127,6 +127,11 @@ class UserAdminViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         before = {field: getattr(serializer.instance, field) for field in serializer.validated_data}
         user = serializer.save()
+        if any(field in serializer.validated_data for field in {"email", "status", "is_active"}):
+            from apps.authentication.services import SessionService, TokenService
+
+            SessionService.revoke_all(user=user, actor=self.request.user, request=self.request)
+            TokenService.revoke_all_jwt(user=user)
         AuditService.record(
             action="user.updated",
             target=user,

@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from django.conf import settings
 from rest_framework import serializers
 
-from apps.accounts.models import User, UserPreferences, UserProfile
+from apps.accounts.models import AccountStatus, User, UserPreferences, UserProfile
 from apps.authorization.services import PermissionService
 from apps.security.models import SecurityEvent
 
@@ -91,6 +91,13 @@ class UserAdminSerializer(serializers.ModelSerializer):
         if query.exists():
             raise serializers.ValidationError("That username is unavailable.")
         return value.strip()
+
+    def validate_status(self, value):
+        if value in {AccountStatus.BANNED, AccountStatus.DELETED}:
+            raise serializers.ValidationError(
+                "Use the dedicated ban or account-deletion lifecycle service."
+            )
+        return value
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
