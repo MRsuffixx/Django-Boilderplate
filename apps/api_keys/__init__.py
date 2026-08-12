@@ -1,0 +1,1 @@
+"""Scoped API key authentication."""

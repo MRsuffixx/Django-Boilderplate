@@ -1,0 +1,1 @@
+"""Append-oriented audit log."""
