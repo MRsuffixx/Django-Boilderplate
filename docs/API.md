@@ -201,7 +201,7 @@ Do not apply idempotency to streaming, file, or non-JSON responses without exten
 
 ## Rate limits
 
-Configured scopes include anonymous, authenticated, login, registration, password reset, verification resend, and API-key operations. A throttle response is `429` with `RATE_LIMITED`; DRF may include a retry duration. Login protection is additional stateful backoff by hashed identifier/IP dimensions. Gateway limits should supplement, not replace, application controls.
+Configured scopes include anonymous, authenticated, login, registration, password reset, verification resend, and API-key operations. A throttle response is `429` with `RATE_LIMITED`; DRF may include a retry duration. Login protection is additional stateful backoff by hashed identifier/IP dimensions and remains database-backed when Redis is disabled. General DRF throttles use the configured Django cache; without Redis they are process-local, so a multi-process deployment must add trusted gateway limits or another shared throttle backend.
 
 ## Schema and examples
 

@@ -1,11 +1,11 @@
 from datetime import timedelta
 
-from celery import shared_task
 from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
 from apps.notifications.models import Notification
+from common.tasks import shared_task
 
 
 @shared_task(name="apps.notifications.tasks.cleanup_notifications")

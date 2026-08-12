@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import importlib.util
 from datetime import timedelta
 from pathlib import Path
 
 import environ
 from django.core.exceptions import ImproperlyConfigured
+
+from config.settings.database import build_database_config
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 env = environ.Env()
@@ -91,20 +94,26 @@ TEMPLATES = [
     },
 ]
 
-database_url = env("DATABASE_URL", default="")
-DATABASES = {
-    "default": env.db_url("DATABASE_URL")
-    if database_url
-    else {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}
-}
-DATABASES["default"]["CONN_MAX_AGE"] = env.int("DATABASE_CONN_MAX_AGE", default=60)
+DATABASES = build_database_config(env=env, base_dir=BASE_DIR)
+DATABASE_ENGINE = (
+    "postgresql"
+    if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql"
+    else "sqlite"
+)
 
-redis_url = env("REDIS_URL", default="")
-if redis_url:
+REDIS_ENABLED = env.bool("REDIS_ENABLED", default=False)
+REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0").strip()
+if REDIS_ENABLED:
+    if not REDIS_URL:
+        raise ImproperlyConfigured("REDIS_URL is required when REDIS_ENABLED=true")
+    if importlib.util.find_spec("django_redis") is None:
+        raise ImproperlyConfigured(
+            'REDIS_ENABLED=true requires the optional ".[redis]" dependency.'
+        )
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": redis_url,
+            "LOCATION": REDIS_URL,
             "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
             "KEY_PREFIX": APP_NAME.lower().replace(" ", "_"),
         }
@@ -147,6 +156,10 @@ STORAGES = {
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 if env("STORAGE_BACKEND", default="local").lower() == "s3":
+    if importlib.util.find_spec("storages") is None:
+        raise ImproperlyConfigured(
+            'STORAGE_BACKEND=s3 requires the optional ".[s3]" dependency.'
+        )
     STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
     AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID", default="")
     AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY", default="")
@@ -238,10 +251,28 @@ EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
 EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
 EMAIL_TIMEOUT = 10
 
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=redis_url or "redis://localhost:6379/1")
-CELERY_RESULT_BACKEND = env(
-    "CELERY_RESULT_BACKEND", default=redis_url or "redis://localhost:6379/2"
-)
+CELERY_ENABLED = env.bool("CELERY_ENABLED", default=False)
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="").strip()
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="").strip()
+if CELERY_ENABLED:
+    if importlib.util.find_spec("celery") is None:
+        raise ImproperlyConfigured(
+            'CELERY_ENABLED=true requires the optional ".[celery]" dependency.'
+        )
+    if not CELERY_BROKER_URL:
+        raise ImproperlyConfigured("CELERY_BROKER_URL is required when CELERY_ENABLED=true")
+    redis_backends = ("redis://", "rediss://")
+    if CELERY_BROKER_URL.startswith(redis_backends) and not REDIS_ENABLED:
+        raise ImproperlyConfigured(
+            "Enable Redis when CELERY_BROKER_URL uses Redis, or configure another broker"
+        )
+    if CELERY_RESULT_BACKEND.startswith(redis_backends) and not REDIS_ENABLED:
+        raise ImproperlyConfigured(
+            "Enable Redis when CELERY_RESULT_BACKEND uses Redis, or configure another backend"
+        )
+else:
+    CELERY_BROKER_URL = CELERY_BROKER_URL or "memory://"
+    CELERY_RESULT_BACKEND = CELERY_RESULT_BACKEND or "cache+memory://"
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
 CELERY_TASK_EAGER_PROPAGATES = True
 CELERY_TASK_SERIALIZER = "json"
@@ -264,10 +295,13 @@ CELERY_BEAT_SCHEDULE = {
     "expire-bans-hourly": {"task": "apps.accounts.tasks.expire_temporary_bans", "schedule": 3600},
     "cleanup-files-daily": {"task": "apps.files.tasks.cleanup_unused_files", "schedule": 86400},
     "cleanup-audit-daily": {"task": "apps.audit.tasks.cleanup_audit_logs", "schedule": 86400},
+    "cleanup-login-attempts-daily": {
+        "task": "apps.security.tasks.cleanup_login_attempts",
+        "schedule": 86400,
+    },
     "dispatch-webhooks": {"task": "apps.webhooks.tasks.dispatch_pending_webhooks", "schedule": 60},
 }
 
-ENABLE_CELERY = env.bool("ENABLE_CELERY", default=True)
 ENABLE_NOTIFICATIONS = env.bool("ENABLE_NOTIFICATIONS", default=True)
 ENABLE_API_KEYS = env.bool("ENABLE_API_KEYS", default=True)
 ENABLE_TWO_FACTOR = env.bool("ENABLE_TWO_FACTOR", default=True)
@@ -325,13 +359,21 @@ SENTRY_DSN = env("SENTRY_DSN", default="")
 if ENABLE_SENTRY and SENTRY_DSN:
     try:
         import sentry_sdk
-        from sentry_sdk.integrations.celery import CeleryIntegration
         from sentry_sdk.integrations.django import DjangoIntegration
     except ImportError as exc:
         raise ImproperlyConfigured("Install the production extra to enable Sentry") from exc
+    sentry_integrations = [DjangoIntegration()]
+    if CELERY_ENABLED:
+        try:
+            from sentry_sdk.integrations.celery import CeleryIntegration
+        except ImportError as exc:
+            raise ImproperlyConfigured(
+                "The Sentry Celery integration requires the celery optional dependency"
+            ) from exc
+        sentry_integrations.append(CeleryIntegration())
     sentry_sdk.init(
         dsn=SENTRY_DSN,
-        integrations=[DjangoIntegration(), CeleryIntegration()],
+        integrations=sentry_integrations,
         send_default_pii=False,
         traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.0),
         environment=APP_ENV,

@@ -41,3 +41,16 @@ class SecurityEvent(UUIDModel):
     class Meta:
         ordering = ["-created_at"]
         indexes = [models.Index(fields=["user", "created_at"], name="security_event_user_time_idx")]
+
+
+class LoginThrottleState(UUIDModel):
+    """Hashed, temporary brute-force counters used when Redis is disabled."""
+
+    dimension_hash = models.CharField(max_length=64, unique=True)
+    attempt_count = models.PositiveIntegerField(default=0)
+    locked_until = models.DateTimeField(null=True, blank=True, db_index=True)
+    expires_at = models.DateTimeField(db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]

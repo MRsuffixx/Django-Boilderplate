@@ -18,9 +18,6 @@ dependencies = [
   "django-filter>=25.1,<26",
   "django-cors-headers>=4.7,<5",
   "django-environ>=0.12,<0.13",
-  "django-redis>=6.0,<7",
-  "celery[redis]>=5.6.3,<5.7",
-  "psycopg[binary]>=3.2.9,<4",
   "cryptography>=45,<47",
   "pyotp>=2.9,<3",
   "user-agents>=2.2,<3",
@@ -32,11 +29,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-production = [
+postgres = ["psycopg[binary]>=3.2.9,<4"]
+redis = ["django-redis>=6.0,<7"]
+celery = ["celery>=5.6.3,<5.7"]
+s3 = [
   "boto3>=1.39,<2",
   "django-storages[s3]>=1.14.6,<2",
+]
+production = [
   "gunicorn>=23,<24",
-  "sentry-sdk[celery,django]>=2.35,<3",
+  "sentry-sdk[django]>=2.35,<3",
 ]
 dev = [
   "factory-boy>=3.3,<4",

@@ -8,36 +8,41 @@ The repository favors explicit services and database constraints over signals an
 
 - UUID custom user model, case-insensitive email/username uniqueness, profiles, preferences, account states, and timed/permanent bans
 - Session and rotating JWT authentication, email verification, password reset, email/username changes, deactivation, and pseudonymous deletion
-- Device/session inventory and revocation, Redis-backed escalating login protection, TOTP 2FA, and single-use recovery codes
+- Device/session inventory and revocation, escalating login protection with a database fallback and optional Redis acceleration, TOTP 2FA, and single-use recovery codes
 - Permission-first RBAC with roles, time-bounded assignments, and explicit per-user `ALLOW`/`DENY` overrides
 - Append-oriented structured audit records and separate user-visible security events
 - In-app/email notifications, hashed scoped API keys, idempotency primitives, feature flags, runtime settings, secure files, and optional signed webhooks
 - Versioned DRF API, stable errors, bounded pagination/filtering, request IDs, OpenAPI, health endpoints, JSON production logs, and optional Sentry
-- PostgreSQL, Redis, Celery/Beat, S3-compatible storage, Mailpit, Docker Compose, pytest, Ruff, and pre-commit
+- SQLite or PostgreSQL, opt-in Redis/Celery/Beat/S3, Mailpit, Docker Compose, pytest, Ruff, and pre-commit
 
 See [Architecture](docs/ARCHITECTURE.md), [API](docs/API.md), [Security](docs/SECURITY.md), and [Customization](docs/CUSTOMIZATION.md).
 
-## Requirements
+## Requirements and supported modes
 
-- Python 3.13+
-- [uv](https://docs.astral.sh/uv/) for the recommended local workflow
-- PostgreSQL and Redis for production
-- Docker 24+ with Compose v2 for the container workflow
+Only Python 3.13+ and pip are required for the minimal mode. [uv](https://docs.astral.sh/uv/) is supported for faster dependency management, and Docker 24+/Compose v2 is optional.
 
-SQLite and an in-process cache are supported only as development/test fallbacks. Production settings fail if PostgreSQL, Redis, strong cryptographic keys, allowed hosts, HTTPS site URL, or a real email backend are missing.
+| Mode | Components | Install |
+| --- | --- | --- |
+| Minimal | Django + SQLite; no Redis or Celery | `pip install -e .` |
+| Standard | Django + PostgreSQL; Redis/Celery not required | `pip install -e ".[postgres]"` |
+| Advanced | Django + PostgreSQL + Redis + Celery + Beat | `pip install -e ".[postgres,redis,celery]"` |
+
+Select the modes with `DATABASE_ENGINE`, `REDIS_ENABLED`, and `CELERY_ENABLED`; application code does not change. S3 and production server/observability dependencies are separate `s3` and `production` extras. SQLite is fully supported for local work and smaller deployments, while PostgreSQL is recommended for production concurrency, operations, and scale.
 
 ## Quick start: local
 
 ```bash
 cp .env.example .env
-uv sync --all-extras
-uv run python manage.py migrate
-uv run python manage.py bootstrap
-uv run python manage.py createsuperuser
-uv run python manage.py runserver
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+python manage.py migrate
+python manage.py bootstrap
+python manage.py createsuperuser
+python manage.py runserver
 ```
 
-With no `DATABASE_URL`, development uses `db.sqlite3`. With no `REDIS_URL`, it uses local memory; use Redis when testing multiple processes or security throttling behavior. Mail defaults to the console unless `.env` selects SMTP.
+On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1`. The checked-in example selects SQLite, disables Redis/Celery, and prints email to the console. A Redis URL may remain present while `REDIS_ENABLED=false`; it is not contacted. For development tools, use `pip install -e ".[dev]"` or `uv sync --extra dev`.
 
 The API is at `http://localhost:8000/api/v1/`, admin at `/admin/`, Swagger at `/api/docs/`, and health at `/health/`.
 
@@ -53,6 +58,8 @@ docker compose exec web python manage.py createsuperuser
 
 Compose starts `web`, PostgreSQL, Redis, a Celery worker, Celery Beat, and Mailpit. Mailpit SMTP is port `1025`; its UI is [http://localhost:8025](http://localhost:8025). Migrations are intentionally explicit and never run automatically at container startup.
 
+The Compose files describe the advanced mode. Docker validation is intentionally a separate Linux deployment check; the Python validation workflow does not require Docker.
+
 ## Environment configuration
 
 `.env.example` documents every supported value. Important groups:
@@ -61,11 +68,11 @@ Compose starts `web`, PostgreSQL, Redis, a Celery worker, Celery Beat, and Mailp
 | --- | --- |
 | Runtime | `APP_ENV`, `DJANGO_SETTINGS_MODULE`, `DEBUG`, `SECRET_KEY`, `ALLOWED_HOSTS` |
 | Branding | `APP_NAME`, `SITE_NAME`, `SITE_URL`, `SUPPORT_EMAIL`, `DEFAULT_FROM_EMAIL` |
-| Data | `DATABASE_URL`, `REDIS_URL` |
+| Data | `DATABASE_ENGINE`, `SQLITE_PATH`, `DATABASE_URL`, `DB_*`, `REDIS_ENABLED`, `REDIS_URL` |
 | Email | `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, TLS/SSL flags |
 | Browser | `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, `TRUST_PROXY_HEADERS`, `TRUSTED_PROXY_IPS` |
 | Crypto | `TOTP_ENCRYPTION_KEY`, `API_KEY_PEPPER`, JWT lifetime variables |
-| Workers | `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`, `ENABLE_CELERY` |
+| Workers | `CELERY_ENABLED`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` |
 | Storage | `STORAGE_BACKEND` and `AWS_*` S3-compatible settings |
 | Optional | `ENABLE_NOTIFICATIONS`, `ENABLE_API_KEYS`, `ENABLE_TWO_FACTOR`, `ENABLE_WEBHOOKS`, `ENABLE_SENTRY`, OpenAPI flags |
 | Retention | session, token, notification, audit, file, and webhook day values |
@@ -80,7 +87,9 @@ Never reuse `SECRET_KEY`, `TOTP_ENCRYPTION_KEY`, or `API_KEY_PEPPER`. Secrets be
 
 ## PostgreSQL
 
-Set a URL such as `postgresql://user:password@host:5432/database`. PostgreSQL is mandatory in production. The schema uses functional unique constraints for case-insensitive identity, check constraints for temporal integrity, JSONB-compatible fields, and targeted indexes. Run migrations from one controlled release job:
+Use SQLite with `DATABASE_ENGINE=sqlite` and `SQLITE_PATH=db.sqlite3`. Use PostgreSQL with `DATABASE_ENGINE=postgresql`, install the `postgres` extra, and either set a URL such as `DATABASE_URL=postgresql://user:password@host:5432/database` or set `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, and `DB_PORT`. Database selection is centralized in `config/settings/database.py`.
+
+The portable schema uses functional uniqueness, temporal constraints, JSON fields, and targeted indexes supported by both databases. PostgreSQL is recommended in production and must be exercised for PostgreSQL-specific concurrency behavior before release. Run migrations from one controlled release job:
 
 ```bash
 uv run python manage.py migrate --plan
@@ -89,16 +98,20 @@ uv run python manage.py migrate
 
 ## Redis
 
-Redis backs cache state, distributed login throttling, Celery, and temporary locks. Set separate logical URLs for cache, broker, and results. Production does not fall back when Redis fails: affected security/API operations fail closed or return dependency failure.
+Redis is disabled by default. With `REDIS_ENABLED=false`, Django uses `LocMemCache`, sessions remain database-backed, and critical login protection stores hashed identifier/IP counters in the application database. General DRF throttles use the local Django cache in this mode and are therefore process-local; use a gateway limit or Redis for coordinated multi-process API throttling.
+
+With `REDIS_ENABLED=true` and the `redis` extra installed, the Django cache and login protection use Redis. A configured URL is never contacted while the switch is false. When Redis is enabled, loss of the service is visible and security-sensitive operations do not silently downgrade to local memory.
 
 ## Celery and Celery Beat
 
 ```bash
-uv run celery -A config worker --loglevel=INFO
-uv run celery -A config beat --loglevel=INFO
+celery -A config.celery worker --loglevel=INFO
+celery -A config.celery beat --loglevel=INFO
 ```
 
-Email is sent through `EmailService`; it queues when Celery is enabled and not eager. Beat schedules session/token/notification/file cleanup, optional audit retention, ban synchronization, and webhook dispatch. Retention is environment-driven; `AUDIT_RETENTION_DAYS=0` retains audit data indefinitely.
+Celery is disabled by default and is not imported at Django startup. Safe task dispatch runs synchronously when disabled, including email delivery; failures remain visible to the request/service caller. Enable it with `CELERY_ENABLED=true`, install the `celery` extra, and configure a broker. A Redis broker also requires `REDIS_ENABLED=true` and the `redis` extra; another Celery-supported broker may be used instead.
+
+Beat schedules session/token/notification/file/login-counter cleanup, optional audit retention, ban synchronization, and webhook dispatch. Without Beat, run the equivalent management commands from the platform scheduler. Retention is environment-driven; `AUDIT_RETENTION_DAYS=0` retains audit data indefinitely.
 
 ## Users and administrators
 
@@ -215,15 +228,15 @@ Tests use pytest-django and factory-boy. Factories live in `tests/factories.py`;
 
 Common `make` targets: `install`, `dev`, `test`, `test-cov`, `lint`, `format`, `check`, `migrate`, `makemigrations`, `shell`, `superuser`, `bootstrap`, `seed`, `collectstatic`, `worker`, `beat`, `schema`, `docker-up`, `docker-down`, and `docker-logs`.
 
-Management commands include `bootstrap`, `seed`, `healthcheck`, `cleanup_sessions`, `cleanup_tokens`, `cleanup_notifications`, and `cleanup_audit`. Cleanup commands are idempotent with respect to eligible rows and obey configured retention.
+Management commands include `bootstrap`, `seed`, `healthcheck`, `cleanup_sessions`, `cleanup_tokens`, `cleanup_notifications`, `cleanup_login_attempts`, and `cleanup_audit`. Cleanup commands are idempotent with respect to eligible rows and obey configured retention.
 
 ## Production deployment
 
 1. Build the multi-stage image and scan it.
 2. Supply secrets through the platform secret manager; select `config.settings.production`.
-3. Provision PostgreSQL, Redis, durable media/object storage, and SMTP/provider email.
+3. Choose SQLite or preferably PostgreSQL; provision Redis, workers, and object storage only when enabled; configure SMTP/provider email.
 4. Run `check --deploy`, migrations, `bootstrap`, and `collectstatic` as controlled release jobs.
-5. Run web, worker, and Beat as separate processes; run exactly one Beat scheduler.
+5. Run the web process. If Celery is enabled, run worker and exactly one Beat scheduler as separate processes.
 6. Route `/health/live/` and `/health/ready/` to orchestrator probes.
 7. Terminate HTTPS at a trusted proxy, block direct application access, then enable forwarded headers with an explicit proxy IP allowlist.
 8. Configure log collection, Sentry if desired, backups, retention, key rotation, and alerts.
@@ -258,12 +271,12 @@ Run `python manage.py bootstrap`; missing permissions are created and unknown pe
 
 ## Replacing or disabling optional infrastructure
 
-- Celery: set `ENABLE_CELERY=false`; email executes synchronously. Do not run worker/Beat. Replace task dispatch at service boundaries.
+- Celery: leave `CELERY_ENABLED=false`; task dispatch and email execute synchronously. Do not run worker/Beat. Enable it by installing `.[celery]` and configuring a broker.
 - Notifications/API keys/2FA/webhooks: set the matching `ENABLE_*` flag. Routes/services fail closed or are omitted. For physical removal, also remove the app, migration ownership, admin/API import, authentication class or schedule string listed in [Customization](docs/CUSTOMIZATION.md).
 - Sentry: remains inactive unless both `ENABLE_SENTRY=true` and `SENTRY_DSN` are set.
 - S3: keep local storage or replace the `STORAGES["default"]` backend; callers remain unchanged.
 - JWT: session authentication is independent. Remove SimpleJWT routes/authentication/blacklist app only after migrating external clients.
-- Redis: local memory is acceptable for one-process development only. Production security throttling intentionally requires Redis.
+- Redis: leave `REDIS_ENABLED=false` for local cache plus database-backed login protection. For multi-process coordinated DRF throttles/cache, enable Redis or enforce equivalent limits at a trusted gateway.
 
 ## Security considerations
 

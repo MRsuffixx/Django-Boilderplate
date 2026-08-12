@@ -11,11 +11,11 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --extra production --no-install-project
+    uv sync --frozen --no-dev --extra production --extra postgres --extra redis --extra celery --extra s3 --no-install-project
 
 COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --extra production
+    uv sync --frozen --no-dev --extra production --extra postgres --extra redis --extra celery --extra s3
 
 FROM python:3.13-slim AS runtime
 

@@ -1,10 +1,10 @@
-from celery import shared_task
 from django.db.models import Q
 from django.utils import timezone
 
 from apps.accounts.models import AccountStatus, User
 from apps.audit.services import AuditService
 from apps.authentication.services import SessionService, TokenService
+from common.tasks import shared_task
 
 
 @shared_task(name="apps.accounts.tasks.expire_temporary_bans")

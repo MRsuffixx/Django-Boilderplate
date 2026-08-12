@@ -1,11 +1,11 @@
 from datetime import timedelta
 
-from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
 from apps.authentication.models import OneTimeToken, UserSession
+from common.tasks import shared_task
 
 
 @shared_task(name="apps.authentication.tasks.cleanup_sessions")

@@ -22,4 +22,4 @@ def test_readiness_checks_database_and_cache(api_client):
     response = api_client.get(reverse("health-ready"))
 
     assert response.status_code == 200
-    assert response.json()["checks"] == {"database": True, "redis": True}
+    assert response.json()["checks"] == {"database": True, "redis": "disabled"}

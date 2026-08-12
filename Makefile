@@ -1,6 +1,10 @@
-.PHONY: install dev test test-cov lint format check migrate makemigrations shell superuser bootstrap seed docker-up docker-down docker-logs collectstatic worker beat schema
+.PHONY: install install-advanced dev test test-cov lint format check migrate makemigrations shell superuser bootstrap seed docker-up docker-down docker-logs collectstatic worker beat schema
 
 install:
+	uv sync --extra dev
+	uv run pre-commit install
+
+install-advanced:
 	uv sync --all-extras
 	uv run pre-commit install
 
@@ -47,10 +51,10 @@ collectstatic:
 	uv run python manage.py collectstatic --noinput
 
 worker:
-	uv run celery -A config worker --loglevel=INFO
+	uv run celery -A config.celery worker --loglevel=INFO
 
 beat:
-	uv run celery -A config beat --loglevel=INFO
+	uv run celery -A config.celery beat --loglevel=INFO
 
 schema:
 	uv run python manage.py spectacular --file schema.yml --validate

@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db import connections
 from django.db.utils import OperationalError
@@ -13,19 +14,23 @@ def live(_request):
 
 
 def ready(_request):
-    checks = {"database": False, "redis": False}
+    checks: dict[str, bool | str] = {
+        "database": False,
+        "redis": False if settings.REDIS_ENABLED else "disabled",
+    }
     try:
         connections["default"].cursor().execute("SELECT 1")
         checks["database"] = True
     except OperationalError:
         logger.warning("health.database_unavailable")
-    try:
-        marker = "ready"
-        cache.set("healthcheck", marker, 5)
-        checks["redis"] = cache.get("healthcheck") == marker
-    except Exception:
-        logger.warning("health.cache_unavailable", exc_info=True)
-    is_ready = all(checks.values())
+    if settings.REDIS_ENABLED:
+        try:
+            marker = "ready"
+            cache.set("healthcheck", marker, 5)
+            checks["redis"] = cache.get("healthcheck") == marker
+        except Exception:
+            logger.warning("health.redis_unavailable", exc_info=True)
+    is_ready = checks["database"] is True and checks["redis"] in {True, "disabled"}
     return JsonResponse(
         {"status": "ok" if is_ready else "unavailable", "checks": checks},
         status=200 if is_ready else 503,

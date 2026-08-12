@@ -8,10 +8,14 @@ x-app: &app
       required: false
   environment: &app-environment
     DJANGO_SETTINGS_MODULE: config.settings.development
+    DATABASE_ENGINE: postgresql
     DATABASE_URL: postgresql://app:app@postgres:5432/app
+    REDIS_ENABLED: "true"
     REDIS_URL: redis://redis:6379/0
+    CELERY_ENABLED: "true"
     CELERY_BROKER_URL: redis://redis:6379/1
     CELERY_RESULT_BACKEND: redis://redis:6379/2
+    EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
     EMAIL_HOST: mailpit
     EMAIL_PORT: 1025
     CELERY_TASK_ALWAYS_EAGER: "false"
@@ -33,16 +37,16 @@ services:
 
   celery_worker:
     <<: *app
-    command: celery -A config worker --loglevel=INFO
+    command: celery -A config.celery worker --loglevel=INFO
     healthcheck:
-      test: ["CMD", "celery", "-A", "config", "inspect", "ping"]
+      test: ["CMD", "celery", "-A", "config.celery", "inspect", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
 
   celery_beat:
     <<: *app
-    command: celery -A config beat --loglevel=INFO --schedule=/tmp/celerybeat-schedule
+    command: celery -A config.celery beat --loglevel=INFO --schedule=/tmp/celerybeat-schedule
 
   postgres:
     image: postgres:17-alpine

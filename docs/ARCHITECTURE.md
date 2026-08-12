@@ -8,12 +8,12 @@ This repository is application infrastructure, not a domain framework. Domain mo
 
 | Package | Responsibility | Dependency direction | Classification |
 | --- | --- | --- | --- |
-| `config` | Environment settings, root URLs, ASGI/WSGI, Celery composition | Composes everything | Required |
+| `config` | Environment settings, root URLs, ASGI/WSGI, optional Celery composition | Composes everything | Required |
 | `common` | Dependency-light models, middleware, errors, responses, crypto, events, email, permissions | May depend on stable infrastructure models only where documented | Required |
 | `accounts` | User identity, profile/preferences/security settings, states, bans | Django auth, audit/session services | Required |
 | `authentication` | Credentials, one-time tokens, login, sessions, JWT state, TOTP/recovery | Accounts, security, audit, email | Required |
 | `authorization` | Permission registry, roles, assignments, overrides, resolution | Accounts | Required |
-| `security` | Security history and Redis-backed login protection | Accounts lazily in services | Required |
+| `security` | Security history and database/optional-Redis login protection | Accounts lazily in services | Required |
 | `audit` | Immutable-from-application structured action history | Accounts FK only | Recommended core |
 | `api` | `/api/v1` HTTP adapters; serializers and thin views | Calls services/selectors | Required for DRF projects |
 | `core` | Typed runtime settings, flags, idempotency, health, common tasks/commands | Stable apps only | Required |
@@ -34,10 +34,10 @@ flowchart LR
     P --> V["Thin API view + serializer"]
     V --> SV["Transactional service"]
     V --> Q["Selector / constrained queryset"]
-    SV --> DB[("PostgreSQL")]
+    SV --> DB[("SQLite or PostgreSQL")]
     SV --> AU["Audit + security events"]
     SV --> E["Email / notification / application event"]
-    E --> R[("Redis / Celery")]
+    E --> R[("Optional Redis / Celery")]
     V --> X["Stable response / exception envelope"]
     X --> C
 ```
@@ -66,7 +66,7 @@ Existing simple reads live directly in constrained view querysets. Extract a `se
 | Idempotent API call | User/key unique constraint, request fingerprint, row lock, serialized completed response |
 | Webhook delivery | Brief row-lock reservation into `PROCESSING`; network I/O occurs after commit; stale reservations recover |
 
-SQLite cannot model all PostgreSQL concurrency characteristics. Run database-sensitive integration tests against PostgreSQL in CI before production changes.
+SQLite is a supported lightweight database, but it cannot model all PostgreSQL concurrency characteristics. Run database-sensitive integration tests against PostgreSQL before deploying the recommended production database.
 
 ## Authentication architecture
 
@@ -97,7 +97,15 @@ Audit rows are structured and application-immutable: instance and queryset updat
 
 ## Background work
 
-Call `EmailService.enqueue` or a domain service, not Celery tasks from arbitrary views. Tasks live within the app owning their data. Celery messages contain serializable primitives, not ORM objects or secrets. Beat retention is configurable and destructive policies default to conservative values.
+Call `EmailService.enqueue` or a domain service, not Celery tasks from arbitrary views. Tasks live within the app owning their data. With Celery disabled, the task adapter executes dispatch synchronously; with it enabled, messages contain serializable primitives, not ORM objects or secrets. Beat retention is configurable and destructive policies default to conservative values.
+
+## Infrastructure modes
+
+- Minimal: SQLite, local Django cache, database-backed login throttling, synchronous task dispatch.
+- Standard: PostgreSQL with the same no-Redis/no-worker behavior.
+- Advanced: PostgreSQL, Redis-backed cache/login throttling, Celery workers, and Beat.
+
+Settings select the mode. Redis and Celery modules are not imported or contacted in minimal/standard mode. DRF cache throttles are process-local without Redis; critical brute-force state remains shared through the database.
 
 ## Model relationships
 

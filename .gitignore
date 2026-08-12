@@ -1,195 +1,60 @@
-### ========================================== ###
-### 1. SECRETS & ENVIRONMENT (HASSAS VERİLER)    ###
-### ========================================== ###
+# Environment and secrets
 .env
 .env.*
 !.env.example
-!.env.template
 *.key
 *.pem
 *.p12
-*.jks
-*.keystore
 credentials.json
 secrets/
-.htpasswd
 
-### ========================================== ###
-### 2. PYTHON CORE & VIRTUAL ENVS              ###
-### ========================================== ###
-# Virtual environments
+# Python and packaging
 .venv/
 venv/
-ENV/
-env/
-.python-version
-
-# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-*$py.class
 *.so
 *.egg-info/
-*.egg
 dist/
 build/
-eggs/
-*.manifest
-*.spec
+.python-version
 
-# Package managers & lock files (opsiyonel ama genelde ignore edilir)
-.pdm-python
-.pdm-build/
-poetry.lock       # Eğer library geliştiriyorsanız ignore edin, app ise tutun
-uv.lock           # uv kullanıyorsanız
-
-### ========================================== ###
-### 3. DJANGO SPECIFIC                         ###
-### ========================================== ###
-# Database
+# Django runtime data
 db.sqlite3
 db.sqlite3-*
 *.sqlite3
-*.dump
-# Database files - ASLA versiyonlama
-db - Kopya*
-*.sql
-*.sql.gz
-
-# Media & Static (Uploads ve toplanan statikler)
 media/*
 !media/.gitkeep
 staticfiles/
-static_collected/
-public/
-
-# Logs & Temp
 *.log
-logs/
-.tmp/
-tmp/
-cache/
 
-# Celery & Async Tasks
+# Celery runtime state
 celerybeat-schedule
 celerybeat.pid
-celery/*.pid
 
-# Django Extensions & Debug
-django_extensions/
-debug_toolbar/
-
-### ========================================== ###
-### 4. TESTING, LINTING & TYPE CHECKING        ###
-### ========================================== ###
-# Coverage & Test Results
+# Test, lint, and type-check caches
 .coverage
 .coverage.*
 htmlcov/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
-.dmypy.json
 .tox/
 .nox/
-test-results/
-junit.xml
 coverage.xml
+junit.xml
 
-# Benchmark & Profiling
-.prof
-*.prof
-benchmarks/
-
-### ========================================== ###
-### 5. DATA FILES & BACKUPS (KRİTİK!)          ###
-### ========================================== ###
-# Spreadsheet & Data formats
-*.xlsx
-*.xls
-*.xlsm
-*.csv
-*.tsv
-*.parquet
-*.feather
-*.h5
-*.hdf5
-*.pkl
-*.pickle
-*.joblib
-
-# Archives & Backups (Sizin zip dosyanız dahil)
-*.zip
-*.tar
-*.tar.gz
-*.tgz
-*.rar
-*.7z
-*.bak
-*.backup
-*.sql
-*.sql.gz
-dumpdata/
-fixtures/*.json   # Fixture'lar genelde versiyonlanır ama büyükse ignore edilebilir
-
-### ========================================== ###
-### 6. FRONTEND & NODE.JS                      ###
-### ========================================== ###
-node_modules/
-.pnpm-store/
-pnpm-debug.log*
-npm-debug.log*
-yarn-error.log*
-.next/
-.nuxt/
-dist/
-storybook-static/
-
-### ========================================== ###
-### 7. IDE, EDITORS & OS FILES                 ###
-### ========================================== ###
-# JetBrains
+# Editors and operating systems
 .idea/
-*.iml
-*.ipr
-*.iws
-
-# VS Code
 .vscode/
-*.code-workspace
-
-# Vim / Neovim
 *.swp
 *.swo
 *~
-tags
-
-# OS Generated
 .DS_Store
-.AppleDouble
-.LSOverride
 Thumbs.db
-ehthumbs.db
 Desktop.ini
-$RECYCLE.BIN/
 
-### ========================================== ###
-### 8. DEPLOYMENT & INFRASTRUCTURE             ###
-### ========================================== ###
-# Docker overrides (local dev için)
+# Local deployment overrides
 docker-compose.override.yml
 docker-compose.local.yml
 .docker/
-
-# Terraform / Ansible / Cloud state
-*.tfstate
-*.tfstate.backup
-.terraform/
-*.tfvars
-!*.tfvars.example
-ansible.cfg
-inventory/
-
-# Jupyter Notebooks (Data science ekibi varsa)
-.ipynb_checkpoints/
-*.ipynb

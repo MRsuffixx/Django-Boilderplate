@@ -12,10 +12,9 @@ def _require(name: str, value: object) -> None:
 
 _require("SECRET_KEY", SECRET_KEY if SECRET_KEY != "unsafe-development-only-key" else "")  # noqa: F405
 _require("ALLOWED_HOSTS", env("ALLOWED_HOSTS", default=""))  # noqa: F405
-_require("DATABASE_URL", database_url)  # noqa: F405
-_require("REDIS_URL", redis_url)  # noqa: F405
 _require("TOTP_ENCRYPTION_KEY", TOTP_ENCRYPTION_KEY)  # noqa: F405
-_require("API_KEY_PEPPER", API_KEY_PEPPER)  # noqa: F405
+if ENABLE_API_KEYS:  # noqa: F405
+    _require("API_KEY_PEPPER", API_KEY_PEPPER)  # noqa: F405
 _require("DEFAULT_FROM_EMAIL", env("DEFAULT_FROM_EMAIL", default=""))  # noqa: F405
 _require("EMAIL_BACKEND", env("EMAIL_BACKEND", default=""))  # noqa: F405
 
@@ -23,7 +22,7 @@ if len(SECRET_KEY) < 50:  # noqa: F405
     raise ImproperlyConfigured("Production SECRET_KEY must contain at least 50 characters")
 if len(TOTP_ENCRYPTION_KEY) < 32:  # noqa: F405
     raise ImproperlyConfigured("Production TOTP_ENCRYPTION_KEY must contain at least 32 characters")
-if len(API_KEY_PEPPER) < 32:  # noqa: F405
+if ENABLE_API_KEYS and len(API_KEY_PEPPER) < 32:  # noqa: F405
     raise ImproperlyConfigured("Production API_KEY_PEPPER must contain at least 32 characters")
 if EMAIL_BACKEND in {  # noqa: F405
     "django.core.mail.backends.console.EmailBackend",
@@ -33,15 +32,12 @@ if EMAIL_BACKEND in {  # noqa: F405
     raise ImproperlyConfigured("Production requires a delivery-capable email backend")
 if not SITE_URL.startswith("https://"):  # noqa: F405
     raise ImproperlyConfigured("Production SITE_URL must use HTTPS")
-if CELERY_TASK_ALWAYS_EAGER:  # noqa: F405
+if CELERY_ENABLED and CELERY_TASK_ALWAYS_EAGER:  # noqa: F405
     raise ImproperlyConfigured("CELERY_TASK_ALWAYS_EAGER must be false in production")
 if TRUST_PROXY_HEADERS and not TRUSTED_PROXY_IPS:  # noqa: F405
     raise ImproperlyConfigured("TRUSTED_PROXY_IPS is required when proxy headers are trusted")
 if env("STORAGE_BACKEND", default="local").lower() == "s3":  # noqa: F405
     _require("AWS_STORAGE_BUCKET_NAME", AWS_STORAGE_BUCKET_NAME)  # noqa: F405
-
-if DATABASES["default"]["ENGINE"] != "django.db.backends.postgresql":  # noqa: F405
-    raise ImproperlyConfigured("Production requires PostgreSQL")
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True

@@ -12,6 +12,8 @@ from apps.files.models import FileStatus, StoredFile
 from apps.files.tasks import cleanup_unused_files
 from apps.notifications.models import Notification
 from apps.notifications.tasks import cleanup_notifications
+from apps.security.models import LoginThrottleState
+from apps.security.tasks import cleanup_login_attempts
 
 pytestmark = pytest.mark.django_db
 
@@ -80,3 +82,13 @@ def test_notification_and_file_cleanup_are_policy_driven(user, settings):
     stored.refresh_from_db()
     assert not Notification.objects.filter(pk=notification.pk).exists()
     assert stored.deleted_at is not None
+
+
+def test_expired_login_throttle_cleanup():
+    state = LoginThrottleState.objects.create(
+        dimension_hash="e" * 64,
+        expires_at=timezone.now() - timedelta(seconds=1),
+    )
+
+    assert cleanup_login_attempts() == 1
+    assert not LoginThrottleState.objects.filter(pk=state.pk).exists()

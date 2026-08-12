@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import timedelta
 
 import httpx
-from celery import shared_task
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -11,6 +10,7 @@ from django.utils import timezone
 
 from apps.webhooks.models import DeliveryStatus, WebhookDelivery
 from apps.webhooks.services import WebhookService
+from common.tasks import shared_task
 
 
 @shared_task(name="apps.webhooks.tasks.dispatch_pending_webhooks")

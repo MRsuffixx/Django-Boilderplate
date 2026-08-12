@@ -16,13 +16,13 @@ The foundation defends common web/API risks through Django ORM escaping, templat
 - Prefer workload/IAM roles for S3 over static keys. If static keys are necessary, scope and rotate them.
 - Never place credentials in URLs, task arguments visible to operators, analytics, Sentry tags, or logs.
 
-Production startup validates critical settings and minimum key lengths. It requires PostgreSQL, Redis, an HTTPS `SITE_URL`, explicit allowed hosts, and a delivery-capable email backend.
+Production startup validates critical settings and minimum key lengths. It requires an HTTPS `SITE_URL`, explicit allowed hosts, a delivery-capable email backend, and the cryptographic material used for encrypted session/2FA data. PostgreSQL and Redis are recommended/optional infrastructure choices rather than unconditional startup requirements.
 
 ## Authentication protections
 
 - Passwords use Argon2 first and Django’s standard validators with a 12-character minimum.
 - Login accepts email/username but returns a uniform invalid-credential message.
-- Redis tracks hashed identifier, IP, and combined dimensions with escalating temporary backoff. Account locks are persisted only for identifier-based failures, avoiding global-IP lockout amplification.
+- Hashed identifier, IP, and combined dimensions receive escalating temporary backoff. The database stores this state when Redis is disabled; Redis stores it when explicitly enabled. Account locks are persisted only for identifier-based failures, avoiding global-IP lockout amplification.
 - Correct-password login still checks account state, active bans, persistent lock, email lifecycle state, and TOTP.
 - One-time tokens are random, keyed-hashed, expiring, superseding, and row-locked on use.
 - Email change/deactivation/deletion and 2FA setup require password reauthentication.
@@ -77,7 +77,9 @@ The IP helper ignores forwarded client IPs unless the direct peer is allowlisted
 
 Use TLS where services cross untrusted networks, private network policies, separate credentials, backups, point-in-time recovery, and least privileges. The application database role should not own the database. For stronger audit immutability, deny UPDATE/DELETE on the audit table and grant a separate retention role.
 
-Redis is security-sensitive state, not an optional production optimization. Require authentication/TLS/network isolation as provided by the platform, disable public exposure, configure eviction intentionally, and alert on unavailability. Security controls fail visibly rather than silently disappearing.
+SQLite supports the minimal mode; PostgreSQL is recommended for production concurrency, operational tooling, and scale. Test the selected database path before release.
+
+Redis is optional. Without it, critical login throttling uses the database and sessions remain database-backed; general DRF cache throttles are process-local, so multi-process deployments must add gateway limits or enable a shared cache. When Redis is enabled it becomes security-sensitive infrastructure: require authentication/TLS/network isolation as provided by the platform, disable public exposure, configure eviction intentionally, and alert on unavailability. An enabled Redis service fails visibly instead of silently downgrading.
 
 ## Email
 
@@ -97,7 +99,7 @@ Consumers should verify signature with constant-time comparison, timestamp toler
 
 ## Celery
 
-Broker access permits task submission. Isolate Redis, accept JSON only, keep task arguments non-secret, validate identifiers/state again in tasks, set time/memory limits at worker/platform level, and run workers as non-root. Do not use pickle. Run one Beat instance. A task retry must not duplicate a state transition or bypass authorization.
+Celery is optional; disabled dispatch is synchronous and no broker is contacted. When enabled, broker access permits task submission. Isolate the broker, accept JSON only, keep task arguments non-secret, validate identifiers/state again in tasks, set time/memory limits at worker/platform level, and run workers as non-root. Do not use pickle. Run one Beat instance. A task retry must not duplicate a state transition or bypass authorization.
 
 ## Logging, audit, and Sentry
 
@@ -110,7 +112,7 @@ Sentry is opt-in and uses `send_default_pii=False`. Review custom context before
 - `DEBUG=false`; production settings module selected
 - unique strong secrets from a secret manager
 - explicit `ALLOWED_HOSTS`, CORS, CSRF, and trusted proxy values
-- PostgreSQL/Redis private and protected; backups restored in a drill
+- selected database private/protected and backups restored in a drill; Redis protected if enabled
 - HTTPS, HSTS, cookies, CSP, static/media origins verified
 - real email delivery and security templates tested
 - migrations reviewed and applied once; bootstrap run

@@ -1,10 +1,10 @@
 from datetime import timedelta
 
-from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
 
 from apps.files.models import FileStatus, StoredFile
+from common.tasks import shared_task
 
 
 @shared_task(name="apps.files.tasks.cleanup_unused_files")

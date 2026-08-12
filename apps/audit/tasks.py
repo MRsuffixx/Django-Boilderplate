@@ -1,10 +1,10 @@
 from datetime import timedelta
 
-from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
 
 from apps.audit.models import AuditLog
+from common.tasks import shared_task
 
 
 @shared_task(name="apps.audit.tasks.cleanup_audit_logs")

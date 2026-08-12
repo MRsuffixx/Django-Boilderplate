@@ -1,3 +1,5 @@
-from config.celery import app as celery_app
+"""Django project configuration package.
 
-__all__ = ("celery_app",)
+Celery is intentionally not imported here: minimal installations do not install it.
+Use ``celery -A config.celery`` when the optional worker stack is enabled.
+"""

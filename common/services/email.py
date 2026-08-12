@@ -74,7 +74,7 @@ class EmailService:
     def enqueue(
         *, template: str, recipient: str, subject: str, context: dict | None = None
     ) -> None:
-        if settings.ENABLE_CELERY and not settings.CELERY_TASK_ALWAYS_EAGER:
+        if settings.CELERY_ENABLED and not settings.CELERY_TASK_ALWAYS_EAGER:
             from apps.core.tasks import send_templated_email
 
             send_templated_email.delay(

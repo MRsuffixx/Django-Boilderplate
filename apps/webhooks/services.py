@@ -60,9 +60,13 @@ class WebhookService:
     @transaction.atomic
     def emit(*, event_type: str, payload: dict) -> WebhookEvent:
         event = WebhookEvent.objects.create(event_type=event_type, payload=payload)
-        endpoints = WebhookEndpoint.objects.filter(
-            is_active=True, event_types__contains=[event_type]
-        )
+        # JSON containment is not portable to SQLite. Endpoint counts are normally small,
+        # and filtering the declared event list here keeps every supported database valid.
+        endpoints = [
+            endpoint
+            for endpoint in WebhookEndpoint.objects.filter(is_active=True).iterator()
+            if event_type in endpoint.event_types
+        ]
         WebhookDelivery.objects.bulk_create(
             [WebhookDelivery(endpoint=endpoint, event=event) for endpoint in endpoints]
         )

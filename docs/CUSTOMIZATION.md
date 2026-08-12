@@ -6,7 +6,7 @@
 2. Keep `AUTH_USER_MODEL = "accounts.User"`; changing it after migrations is intentionally difficult.
 3. Set branding (`APP_NAME`, `SITE_NAME`, `SITE_URL`, support/from email) and replace email visual assets/text.
 4. Generate independent secrets and configure the development environment.
-5. Choose PostgreSQL, Redis, email, and storage providers.
+5. Choose SQLite or PostgreSQL, then opt into Redis, Celery, email, and storage providers as needed.
 6. Select optional modules and remove only those the project will not need.
 7. Create domain apps under `apps/` with services/selectors/API boundaries.
 8. Register domain permissions and run `bootstrap`.
@@ -28,13 +28,14 @@ Required core:
 
 - `config`, `common`, `apps.accounts`, `apps.authentication`, `apps.authorization`, `apps.security`, `apps.core`
 - Django auth/contenttypes/sessions and DRF
-- PostgreSQL and Redis in production
+- SQLite or PostgreSQL
 
 Recommended:
 
 - `apps.audit` for traceability
 - `apps.api` for versioned DRF projects
-- Celery for non-blocking email and scheduled cleanup
+- PostgreSQL for production concurrency and operational scale
+- Redis/Celery for distributed cache/throttles, non-blocking email, and scheduled cleanup
 
 Optional/removable:
 
@@ -45,6 +46,7 @@ Optional/removable:
 - TOTP endpoints/models within authentication (runtime-disable unless making a custom migration)
 - SimpleJWT for session-only deployments
 - Sentry, OpenAPI production exposure, Celery runtime workers
+- Redis and its cache backend
 - Feature flags if the project does not need runtime rollout (part of `core`, so removal is a small code/data migration)
 
 Runtime disabling is safer than deleting migration history and supports later activation. Remove physically only before deployment or through normal forward migrations.
@@ -199,7 +201,11 @@ Remove the files app only if no model references it. S3 support is a production 
 
 ### Celery
 
-Set `ENABLE_CELERY=false`; email sends synchronously. Stop worker/Beat and remove Celery config/dependencies/schedules only if no domain app queues tasks. Ensure web-request latency and email failure behavior are acceptable.
+Leave `CELERY_ENABLED=false`; the task adapter and email service run synchronously and Django never imports Celery. Stop worker/Beat and omit the `celery` extra. To enable it, install `.[celery]`, configure `CELERY_BROKER_URL`, and set `CELERY_ENABLED=true`. A Redis broker also requires `REDIS_ENABLED=true` plus `.[redis]`. Ensure synchronous web-request latency and email failure behavior are acceptable when workers are disabled.
+
+### Redis
+
+Leave `REDIS_ENABLED=false` to use `LocMemCache` plus database-backed login throttle records. The configured URL is ignored and no Redis connection is attempted. General DRF cache throttles are process-local in this mode; multi-process deployments need trusted gateway limits or Redis. To enable the shared cache, install `.[redis]`, set `REDIS_ENABLED=true`, and configure `REDIS_URL`.
 
 ### JWT
 
@@ -217,7 +223,7 @@ Sentry imports only when enabled and configured. Remove its production extra if 
 
 - Email: configure any Django email backend or replace `EmailService` internals while preserving its call signature/templates.
 - Tasks: replace `enqueue`/domain dispatch boundaries with another queue; keep on-commit behavior and JSON-safe messages.
-- Cache/login state: provide a Django cache backend with atomic increment and TTL semantics. Production must remain distributed and fail visibly.
+- Cache/login state: the default database fallback protects login across processes. Redis adds coordinated cache/DRF throttle state; an alternative shared backend must provide atomic increment and TTL semantics and fail visibly when enabled.
 - Storage: configure any Django storage implementation.
 - Observability: replace JSON log shipping/Sentry without logging request bodies or secrets.
 - Permission engine: keep codenames/service interface while replacing persistence/resolution; migration must preserve deny precedence and account gate.
@@ -238,4 +244,4 @@ ruff format --check .
 docker build .
 ```
 
-Then test actual PostgreSQL constraints/concurrency, Redis failure, worker/Beat startup, SMTP delivery into a safe inbox, S3 upload/download, proxy scheme/client IP, CORS/CSRF frontend flow, readiness under dependency loss, backups/restores, and domain-specific authorization abuse cases.
+The Python checks above apply to every mode. Docker build/Compose startup are separate Linux validation steps and may be omitted from a local Python-only review. When a feature is selected, test actual PostgreSQL constraints/concurrency, Redis failure, worker/Beat startup, SMTP delivery into a safe inbox, S3 upload/download, proxy scheme/client IP, CORS/CSRF frontend flow, readiness under dependency loss, backups/restores, and domain-specific authorization abuse cases.

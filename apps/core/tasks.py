@@ -1,6 +1,5 @@
-from celery import shared_task
-
 from common.services.email import EmailService
+from common.tasks import shared_task
 
 
 @shared_task(
