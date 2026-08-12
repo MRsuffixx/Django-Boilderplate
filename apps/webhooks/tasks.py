@@ -5,6 +5,7 @@ from datetime import timedelta
 import httpx
 from celery import shared_task
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 

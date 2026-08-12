@@ -50,7 +50,6 @@ def idempotent(*, ttl: timedelta = timedelta(hours=24)):
                 except IntegrityError as exc:
                     raise APIException("A request with this Idempotency-Key is in progress.", code="CONFLICT", status_code=409) from exc
                 response = method(view, request, *args, **kwargs)
-                response.render()
                 try:
                     json.dumps(response.data)
                 except (TypeError, ValueError) as exc:

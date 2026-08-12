@@ -41,4 +41,5 @@ class RuntimeSettingService:
 class FeatureFlagService:
     @staticmethod
     def is_enabled(key: str, *, default: bool = False) -> bool:
-        return FeatureFlag.objects.filter(key=key).values_list("enabled", flat=True).first() or default
+        value = FeatureFlag.objects.filter(key=key).values_list("enabled", flat=True).first()
+        return default if value is None else value

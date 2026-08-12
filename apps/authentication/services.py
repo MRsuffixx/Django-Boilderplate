@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import secrets
 from datetime import timedelta
-from urllib.parse import quote
 
 import pyotp
 from django.conf import settings
@@ -175,8 +174,7 @@ class TwoFactorService:
             user=user,
             encrypted_secret=encrypt_value(secret, purpose="totp-secret"),
         )
-        issuer = quote(settings.SITE_NAME)
-        uri = pyotp.TOTP(secret).provisioning_uri(name=user.email, issuer_name=issuer)
+        uri = pyotp.TOTP(secret).provisioning_uri(name=user.email, issuer_name=settings.SITE_NAME)
         return secret, uri
 
     @classmethod
@@ -302,8 +300,6 @@ class AuthenticationService:
             if not valid:
                 LoginProtectionService.register_failure(identifier, ip)
                 raise APIException("Invalid credentials.", code="AUTHENTICATION_FAILED", status_code=401)
-            if recovery_used:
-                SecurityEventService.record(SecurityEventType.RECOVERY_CODE_USED, user=user, request=request)
         LoginProtectionService.reset(identifier, ip)
         login(request, user)
         request.session.set_expiry(60 * 60 * 24 * 30 if remember_me else 0)

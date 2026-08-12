@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import logging
 import re
+import uuid
+from datetime import date, datetime
+from decimal import Decimal
 from typing import Any
 
 from pythonjsonlogger.json import JsonFormatter
@@ -19,7 +22,13 @@ def sanitize(value: Any) -> Any:
         return {key: "[REDACTED]" if SENSITIVE_KEY.search(str(key)) else sanitize(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
         return [sanitize(item) for item in value]
-    return value
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    if isinstance(value, (uuid.UUID, Decimal)):
+        return str(value)
+    return str(value)
 
 
 class RequestContextFilter(logging.Filter):
