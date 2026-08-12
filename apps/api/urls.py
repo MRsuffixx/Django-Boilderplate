@@ -6,6 +6,7 @@ from apps.api.views.accounts import (
     CurrentUserProfileView,
     CurrentUserView,
     SecurityEventListView,
+    SecurityEventAdminViewSet,
     UserAdminViewSet,
 )
 from apps.api.views.api_keys import APIKeyViewSet
@@ -54,6 +55,7 @@ router.register(
     "permission-overrides", UserPermissionOverrideViewSet, basename="permission-override"
 )
 router.register("audit-logs", AuditLogViewSet, basename="audit-log")
+router.register("security-events", SecurityEventAdminViewSet, basename="security-event-admin")
 router.register("settings", SettingViewSet, basename="setting")
 router.register("feature-flags", FeatureFlagViewSet, basename="feature-flag")
 

@@ -33,6 +33,7 @@ from apps.authorization.models import Role, UserRole
 from apps.security.models import SecurityEventType
 from apps.security.services import LoginProtectionService, SecurityEventService
 from common.crypto import decrypt_value, encrypt_value, generate_token, keyed_hash
+from common.events import ApplicationEvent, EventBus
 from common.exceptions import APIException
 from common.services.email import EmailService
 from common.utils.network import get_client_ip
@@ -187,7 +188,11 @@ class TwoFactorService:
 
     @classmethod
     @transaction.atomic
-    def begin_setup(cls, *, user: User) -> tuple[str, str]:
+    def begin_setup(cls, *, user: User, password: str) -> tuple[str, str]:
+        if not user.check_password(password):
+            raise APIException(
+                "Authentication failed.", code="AUTHENTICATION_FAILED", status_code=401
+            )
         TwoFactorCredential.objects.filter(user=user, confirmed_at__isnull=True).delete()
         if TwoFactorCredential.objects.filter(
             user=user, confirmed_at__isnull=False, disabled_at__isnull=True
@@ -227,6 +232,14 @@ class TwoFactorService:
             SecurityEventType.TWO_FACTOR_ENABLED, user=user, request=request
         )
         AuditService.record(action="two_factor.enabled", target=user, actor=user, request=request)
+        transaction.on_commit(
+            lambda: EmailService.enqueue(
+                template="two_factor_enabled",
+                recipient=user.email,
+                subject=f"Two-factor authentication enabled on {settings.SITE_NAME}",
+                context={"user": user},
+            )
+        )
         return codes
 
     @classmethod
@@ -307,6 +320,14 @@ class TwoFactorService:
             SecurityEventType.TWO_FACTOR_DISABLED, user=user, request=request
         )
         AuditService.record(action="two_factor.disabled", target=user, actor=user, request=request)
+        transaction.on_commit(
+            lambda: EmailService.enqueue(
+                template="two_factor_disabled",
+                recipient=user.email,
+                subject=f"Two-factor authentication disabled on {settings.SITE_NAME}",
+                context={"user": user},
+            )
+        )
 
 
 class AuthenticationService:
@@ -332,8 +353,33 @@ class AuthenticationService:
                 metadata={"identifier_hash": LoginProtectionService._digest(identifier)},
             )
             code_name = "ACCOUNT_LOCKED" if new_state.locked else "AUTHENTICATION_FAILED"
+            if new_state.account_locked:
+                LoginProtectionService.lock_known_account(
+                    identifier=identifier,
+                    retry_after=new_state.retry_after,
+                    request=request,
+                )
             raise APIException(
                 "Invalid credentials.", code=code_name, status_code=429 if new_state.locked else 401
+            )
+        security_settings, _ = UserSecuritySettings.objects.get_or_create(user=user)
+        if security_settings.is_locked:
+            retry_after = max(
+                1, int((security_settings.locked_until - timezone.now()).total_seconds())
+            )
+            raise APIException(
+                "Too many attempts. Try again later.",
+                code="ACCOUNT_LOCKED",
+                status_code=429,
+                fields={"retry_after": retry_after},
+            )
+        if security_settings.locked_until:
+            security_settings.locked_until = None
+            security_settings.save(update_fields=["locked_until", "updated_at"])
+            SecurityEventService.record(
+                SecurityEventType.ACCOUNT_UNLOCKED,
+                user=user,
+                request=request,
             )
         if (
             user.status == AccountStatus.BANNED
@@ -685,6 +731,8 @@ class AccountService:
         user = User.objects.select_for_update().get(pk=token.user_id)
         original = {"email": user.email, "username": user.username}
         suffix = user.pk.hex
+        avatar_name = user.avatar.name
+        avatar_storage = user.avatar.storage
         user.email = f"deleted-{suffix}@invalid.local"
         user.username = f"deleted-{suffix}"
         user.first_name = ""
@@ -697,8 +745,10 @@ class AccountService:
         user.phone_verified_at = None
         user.set_unusable_password()
         user.save()
+        UserProfile.objects.filter(user=user).update(bio="", website="", location="")
         SessionService.revoke_all(user=user, actor=user, request=request)
         TokenService.revoke_all_jwt(user=user)
+        SecurityEventService.record(SecurityEventType.ACCOUNT_DELETED, user=user, request=request)
         AuditService.record(
             action="account.deleted",
             target=user,
@@ -707,4 +757,16 @@ class AccountService:
             before=original,
             after={"status": AccountStatus.DELETED},
             target_repr=f"Deleted user {suffix}",
+        )
+        if avatar_name:
+            transaction.on_commit(lambda: avatar_storage.delete(avatar_name))
+        transaction.on_commit(
+            lambda: EventBus.publish(
+                ApplicationEvent(
+                    name="account.deleted",
+                    actor_id=str(user.pk),
+                    target_type="accounts.user",
+                    target_id=str(user.pk),
+                )
+            )
         )

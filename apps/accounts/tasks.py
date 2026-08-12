@@ -3,11 +3,25 @@ from django.db.models import Q
 from django.utils import timezone
 
 from apps.accounts.models import AccountStatus, User
+from apps.audit.services import AuditService
+from apps.authentication.services import SessionService, TokenService
 
 
 @shared_task(name="apps.accounts.tasks.expire_temporary_bans")
 def expire_temporary_bans() -> int:
     now = timezone.now()
+    activated = 0
+    users_to_activate = User.objects.exclude(status=AccountStatus.BANNED).filter(
+        bans__revoked_at__isnull=True,
+        bans__starts_at__lte=now,
+    ).filter(Q(bans__expires_at__isnull=True) | Q(bans__expires_at__gt=now)).distinct()
+    for user in users_to_activate:
+        user.status = AccountStatus.BANNED
+        user.save(update_fields=["status", "updated_at"])
+        SessionService.revoke_all(user=user)
+        TokenService.revoke_all_jwt(user=user)
+        AuditService.record(action="account.ban_activated", target=user)
+        activated += 1
     user_ids = list(
         User.objects.filter(
             status=AccountStatus.BANNED, bans__expires_at__lte=now, bans__revoked_at__isnull=True
@@ -26,4 +40,4 @@ def expire_temporary_bans() -> int:
             user.status = AccountStatus.ACTIVE
             user.save(update_fields=["status", "updated_at"])
             updated += 1
-    return updated
+    return updated + activated

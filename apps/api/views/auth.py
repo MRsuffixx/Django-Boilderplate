@@ -20,6 +20,7 @@ from apps.api.serializers.auth import (
     TokenSerializer,
     TwoFactorCodeSerializer,
     TwoFactorDisableSerializer,
+    TwoFactorSetupSerializer,
 )
 from apps.api.throttles import (
     EmailVerificationThrottle,
@@ -230,7 +231,11 @@ class TwoFactorSetupView(APIView):
             raise APIException(
                 "Two-factor authentication is disabled.", code="FEATURE_DISABLED", status_code=404
             )
-        secret, provisioning_uri = TwoFactorService.begin_setup(user=request.user)
+        serializer = TwoFactorSetupSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        secret, provisioning_uri = TwoFactorService.begin_setup(
+            user=request.user, **serializer.validated_data
+        )
         return success_response({"secret": secret, "provisioning_uri": provisioning_uri})
 
 

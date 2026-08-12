@@ -86,5 +86,9 @@ class TwoFactorCodeSerializer(serializers.Serializer):
     code = serializers.CharField(max_length=32, trim_whitespace=True)
 
 
+class TwoFactorSetupSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+
 class TwoFactorDisableSerializer(TwoFactorCodeSerializer):
     password = serializers.CharField(write_only=True, trim_whitespace=False)

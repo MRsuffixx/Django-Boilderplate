@@ -47,7 +47,7 @@ class SecureFileValidator:
                             "Image dimensions are too large.", code="image_too_large"
                         )
                     image.verify()
-            except (UnidentifiedImageError, OSError) as exc:
+            except (Image.DecompressionBombError, UnidentifiedImageError, OSError) as exc:
                 raise ValidationError("The image is invalid.", code="invalid_image") from exc
             finally:
                 uploaded_file.seek(0)

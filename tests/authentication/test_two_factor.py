@@ -9,7 +9,9 @@ pytestmark = pytest.mark.django_db
 
 
 def test_two_factor_setup_encrypts_secret_and_returns_single_use_recovery_codes(user):
-    secret, uri = TwoFactorService.begin_setup(user=user)
+    secret, uri = TwoFactorService.begin_setup(
+        user=user, password="A-very-secure-test-password-42"
+    )
     credential = user.two_factor
     assert secret not in credential.encrypted_secret
     assert uri.startswith("otpauth://totp/")
@@ -30,7 +32,9 @@ def test_two_factor_setup_encrypts_secret_and_returns_single_use_recovery_codes(
 
 
 def test_two_factor_can_be_disabled_with_password_and_totp(user):
-    secret, _ = TwoFactorService.begin_setup(user=user)
+    secret, _ = TwoFactorService.begin_setup(
+        user=user, password="A-very-secure-test-password-42"
+    )
     TwoFactorService.confirm_setup(user=user, code=pyotp.TOTP(secret).now())
 
     TwoFactorService.disable(

@@ -33,6 +33,7 @@ class WebhookEvent(UUIDModel):
 
 class DeliveryStatus(models.TextChoices):
     PENDING = "pending", "Pending"
+    PROCESSING = "processing", "Processing"
     SUCCEEDED = "succeeded", "Succeeded"
     FAILED = "failed", "Failed"
     ABANDONED = "abandoned", "Abandoned"

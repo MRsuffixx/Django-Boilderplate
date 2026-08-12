@@ -3,11 +3,14 @@ from __future__ import annotations
 import hashlib
 import logging
 from dataclasses import dataclass
+from datetime import timedelta
 
 from django.conf import settings
 from django.core.cache import cache
+from django.db.models import Q
+from django.utils import timezone
 
-from apps.security.models import SecurityEvent
+from apps.security.models import SecurityEvent, SecurityEventType
 from common.utils.network import get_client_ip
 
 logger = logging.getLogger(__name__)
@@ -32,6 +35,7 @@ class SecurityEventService:
 class LockoutState:
     locked: bool
     retry_after: int = 0
+    account_locked: bool = False
 
 
 class LoginProtectionService:
@@ -59,6 +63,7 @@ class LoginProtectionService:
     @classmethod
     def register_failure(cls, identifier: str, ip_address: str | None) -> LockoutState:
         longest = 0
+        account_longest = 0
         for dimension in cls._dimensions(identifier, ip_address):
             attempts_key = f"{cls.namespace}:attempts:{dimension}"
             if cache.add(attempts_key, 1, timeout=settings.LOGIN_MAX_BACKOFF_SECONDS):
@@ -77,7 +82,9 @@ class LoginProtectionService:
                 )
                 cache.set(f"{cls.namespace}:lock:{dimension}", True, timeout=lock_seconds)
                 longest = max(longest, lock_seconds)
-        return LockoutState(bool(longest), longest)
+                if dimension.startswith("id:"):
+                    account_longest = max(account_longest, lock_seconds)
+        return LockoutState(bool(longest), longest, bool(account_longest))
 
     @classmethod
     def reset(cls, identifier: str, ip_address: str | None) -> None:
@@ -87,3 +94,29 @@ class LoginProtectionService:
                 [f"{cls.namespace}:attempts:{dimension}", f"{cls.namespace}:lock:{dimension}"]
             )
         cache.delete_many(keys)
+
+    @classmethod
+    def lock_known_account(cls, *, identifier: str, retry_after: int, request=None) -> None:
+        from apps.accounts.models import User, UserPreferences, UserSecuritySettings
+        from common.services.email import EmailService
+
+        user = User.objects.filter(
+            Q(email__iexact=identifier.strip()) | Q(username__iexact=identifier.strip())
+        ).first()
+        if not user:
+            return
+        security_settings, _ = UserSecuritySettings.objects.get_or_create(user=user)
+        was_locked = security_settings.is_locked
+        security_settings.locked_until = timezone.now() + timedelta(seconds=retry_after)
+        security_settings.save(update_fields=["locked_until", "updated_at"])
+        if was_locked:
+            return
+        SecurityEventService.record(SecurityEventType.ACCOUNT_LOCKED, user=user, request=request)
+        preferences, _ = UserPreferences.objects.get_or_create(user=user)
+        if preferences.security_emails:
+            EmailService.enqueue(
+                template="account_locked",
+                recipient=user.email,
+                subject="Your account was temporarily locked",
+                context={"user": user, "retry_after": retry_after},
+            )

@@ -75,6 +75,21 @@ class SecurityEventListView(generics.ListAPIView):
         return self.request.user.security_events.all()
 
 
+class SecurityEventAdminViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = SecurityEventSerializer
+    permission_classes = [HasPermission, HasAPIKeyScope]
+    required_permission = "security_events.view"
+    filterset_fields = ["user", "event_type", "ip_address"]
+    search_fields = ["user__email", "request_id", "ip_address"]
+    ordering_fields = ["created_at", "event_type"]
+    ordering = ["-created_at"]
+
+    def get_queryset(self):
+        from apps.security.models import SecurityEvent
+
+        return SecurityEvent.objects.select_related("user")
+
+
 class UserAdminViewSet(viewsets.ModelViewSet):
     serializer_class = UserAdminSerializer
     permission_classes = [HasPermission, HasAPIKeyScope]

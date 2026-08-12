@@ -133,6 +133,7 @@ class SecurityEventSerializer(serializers.ModelSerializer):
         model = SecurityEvent
         fields = [
             "id",
+            "user",
             "event_type",
             "ip_address",
             "user_agent",
