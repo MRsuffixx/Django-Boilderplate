@@ -11,7 +11,6 @@ from apps.audit.models import AuditLog
 from apps.authentication.models import TokenPurpose
 from apps.security.models import SecurityEvent, SecurityEventType
 
-
 pytestmark = pytest.mark.django_db
 
 PASSWORD = "A-very-secure-test-password-42"
@@ -23,17 +22,20 @@ def _token_from_body(body: str) -> str:
     return match.group(1)
 
 
-def test_registration_creates_related_state_and_sends_verification(api_client):
-    response = api_client.post(
-        reverse("register"),
-        {
-            "email": "New@Example.Test",
-            "username": "new-user",
-            "password": PASSWORD,
-            "first_name": "New",
-        },
-        format="json",
-    )
+def test_registration_creates_related_state_and_sends_verification(
+    api_client, django_capture_on_commit_callbacks
+):
+    with django_capture_on_commit_callbacks(execute=True):
+        response = api_client.post(
+            reverse("register"),
+            {
+                "email": "New@Example.Test",
+                "username": "new-user",
+                "password": PASSWORD,
+                "first_name": "New",
+            },
+            format="json",
+        )
 
     assert response.status_code == 201
     assert response.data["success"] is True
@@ -47,12 +49,13 @@ def test_registration_creates_related_state_and_sends_verification(api_client):
     assert AuditLog.objects.filter(action="user.created", target_id=str(user.pk)).exists()
 
 
-def test_email_verification_activates_pending_user(api_client):
-    api_client.post(
-        reverse("register"),
-        {"email": "new@example.test", "username": "new-user", "password": PASSWORD},
-        format="json",
-    )
+def test_email_verification_activates_pending_user(api_client, django_capture_on_commit_callbacks):
+    with django_capture_on_commit_callbacks(execute=True):
+        api_client.post(
+            reverse("register"),
+            {"email": "new@example.test", "username": "new-user", "password": PASSWORD},
+            format="json",
+        )
     token = _token_from_body(mail.outbox[0].body)
 
     response = api_client.post(reverse("verify-email"), {"token": token}, format="json")
@@ -63,12 +66,13 @@ def test_email_verification_activates_pending_user(api_client):
     assert user.is_email_verified
 
 
-def test_verification_token_cannot_be_reused(api_client):
-    api_client.post(
-        reverse("register"),
-        {"email": "new@example.test", "username": "new-user", "password": PASSWORD},
-        format="json",
-    )
+def test_verification_token_cannot_be_reused(api_client, django_capture_on_commit_callbacks):
+    with django_capture_on_commit_callbacks(execute=True):
+        api_client.post(
+            reverse("register"),
+            {"email": "new@example.test", "username": "new-user", "password": PASSWORD},
+            format="json",
+        )
     token = _token_from_body(mail.outbox[0].body)
     api_client.post(reverse("verify-email"), {"token": token}, format="json")
 
@@ -90,7 +94,9 @@ def test_login_accepts_email_or_username_and_returns_rotatable_tokens(api_client
     assert response.data["data"]["access"]
     assert response.data["data"]["refresh"]
     assert user.user_sessions.count() == 1
-    assert SecurityEvent.objects.filter(user=user, event_type=SecurityEventType.LOGIN_SUCCESS).exists()
+    assert SecurityEvent.objects.filter(
+        user=user, event_type=SecurityEventType.LOGIN_SUCCESS
+    ).exists()
 
 
 def test_login_error_does_not_reveal_unknown_account(api_client, user):
@@ -140,7 +146,9 @@ def test_logout_blacklists_refresh_token(api_client, user):
     api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {login_response.data['data']['access']}")
 
     response = api_client.post(reverse("logout"), {"refresh": refresh}, format="json")
-    refresh_response = api_client.post(reverse("token-refresh"), {"refresh": refresh}, format="json")
+    refresh_response = api_client.post(
+        reverse("token-refresh"), {"refresh": refresh}, format="json"
+    )
 
     assert response.status_code == 200
     assert refresh_response.status_code == 401

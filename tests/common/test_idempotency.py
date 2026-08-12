@@ -3,7 +3,6 @@ from django.urls import reverse
 
 from apps.api_keys.models import APIKey
 
-
 pytestmark = pytest.mark.django_db
 
 

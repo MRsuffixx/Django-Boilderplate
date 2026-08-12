@@ -5,7 +5,6 @@ from django.test import RequestFactory
 from apps.authentication.models import RecoveryCode
 from apps.authentication.services import TwoFactorService
 
-
 pytestmark = pytest.mark.django_db
 
 
@@ -20,7 +19,9 @@ def test_two_factor_setup_encrypts_secret_and_returns_single_use_recovery_codes(
     credential.refresh_from_db()
     assert credential.is_enabled
     assert len(codes) == TwoFactorService.recovery_code_count
-    assert RecoveryCode.objects.filter(credential=credential, used_at__isnull=True).count() == len(codes)
+    assert RecoveryCode.objects.filter(credential=credential, used_at__isnull=True).count() == len(
+        codes
+    )
 
     valid, recovery_used = TwoFactorService.verify(user=user, code=codes[0])
     assert valid and recovery_used

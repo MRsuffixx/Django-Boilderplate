@@ -10,7 +10,6 @@ from apps.authorization.models import Permission, Role
 class UserFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = User
-        skip_postgeneration_save = True
 
     email = factory.Sequence(lambda number: f"user{number}@example.test")
     username = factory.Sequence(lambda number: f"user{number}")
@@ -18,7 +17,11 @@ class UserFactory(factory.django.DjangoModelFactory):
     last_name = factory.Faker("last_name")
     status = AccountStatus.ACTIVE
     email_verified_at = factory.LazyFunction(timezone.now)
-    password = factory.PostGenerationMethodCall("set_password", "A-very-secure-test-password-42")
+    password = "A-very-secure-test-password-42"
+
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        return model_class.objects.create_user(*args, **kwargs)
 
 
 class AdminUserFactory(UserFactory):

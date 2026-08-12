@@ -3,10 +3,14 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
-from apps.authorization.models import OverrideEffect, RolePermission, UserPermissionOverride, UserRole
+from apps.authorization.models import (
+    OverrideEffect,
+    RolePermission,
+    UserPermissionOverride,
+    UserRole,
+)
 from apps.authorization.services import PermissionService
 from tests.factories import PermissionFactory, RoleFactory
-
 
 pytestmark = pytest.mark.django_db
 

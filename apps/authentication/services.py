@@ -231,9 +231,8 @@ class TwoFactorService:
 
     @classmethod
     def verify(cls, *, user: User, code: str) -> tuple[bool, bool]:
-        try:
-            credential = user.two_factor
-        except TwoFactorCredential.DoesNotExist:
+        credential = TwoFactorCredential.objects.filter(user=user).first()
+        if credential is None:
             return False, False
         if not credential.is_enabled:
             return False, False

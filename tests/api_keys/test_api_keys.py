@@ -1,9 +1,7 @@
 import pytest
-from django.test import RequestFactory
 from django.urls import reverse
 
 from apps.api_keys.services import APIKeyService
-
 
 pytestmark = pytest.mark.django_db
 

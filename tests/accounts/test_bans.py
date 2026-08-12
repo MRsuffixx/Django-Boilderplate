@@ -6,7 +6,6 @@ from django.utils import timezone
 from apps.accounts.models import AccountStatus
 from apps.accounts.services import BanService
 
-
 pytestmark = pytest.mark.django_db
 
 

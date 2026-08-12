@@ -3,7 +3,6 @@ from django.core.exceptions import ValidationError
 
 from apps.audit.services import AuditService
 
-
 pytestmark = pytest.mark.django_db
 
 

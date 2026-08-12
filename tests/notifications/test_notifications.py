@@ -5,7 +5,6 @@ from django.utils import timezone
 from apps.notifications.models import Notification
 from tests.factories import UserFactory
 
-
 pytestmark = pytest.mark.django_db
 
 

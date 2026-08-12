@@ -5,7 +5,6 @@ from django.db import IntegrityError, transaction
 
 from apps.accounts.models import AccountStatus, User
 
-
 pytestmark = pytest.mark.django_db
 
 
@@ -26,7 +25,9 @@ def test_case_insensitive_email_constraint():
     User.objects.create_user(email="person@example.test", username="person1", password="password")
 
     with pytest.raises(IntegrityError), transaction.atomic():
-        User.objects.create_user(email="PERSON@example.test", username="person2", password="password")
+        User.objects.create_user(
+            email="PERSON@example.test", username="person2", password="password"
+        )
 
 
 def test_case_insensitive_username_constraint():

@@ -5,7 +5,6 @@ from django.urls import reverse
 
 from apps.authentication.services import SessionService
 
-
 pytestmark = pytest.mark.django_db
 
 

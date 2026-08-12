@@ -1,6 +1,6 @@
 from django.db.models import Q
 from django.utils import timezone
-from rest_framework import viewsets
+from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 
 from apps.api.serializers.notifications import NotificationSerializer
@@ -11,7 +11,7 @@ from common.responses import success_response
 
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = NotificationSerializer
-    permission_classes = [HasAPIKeyScope]
+    permission_classes = [permissions.IsAuthenticated, HasAPIKeyScope]
     required_api_key_scopes = ("notifications.read",)
     filterset_fields = ["type"]
     ordering_fields = ["created_at", "expires_at"]
