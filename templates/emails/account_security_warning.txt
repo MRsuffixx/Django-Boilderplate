@@ -1,0 +1,5 @@
+Hello {{ user.display_name }},
+
+A sensitive account action was requested: {{ action_url }}
+
+If this was not you, do not use this link.

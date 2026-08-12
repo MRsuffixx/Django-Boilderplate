@@ -1,0 +1,5 @@
+Hello {{ user.display_name }},
+
+Your account is ready. Welcome to {{ site_name }}.
+
+Need help? {{ support_email }}

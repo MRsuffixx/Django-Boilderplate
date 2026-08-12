@@ -1,0 +1,3 @@
+Hello {{ user.display_name }},
+
+Two-factor authentication was enabled on your account.

@@ -1,0 +1,5 @@
+Hello {{ user.display_name }},
+
+{{ notification.title }}
+
+{{ notification.message }}

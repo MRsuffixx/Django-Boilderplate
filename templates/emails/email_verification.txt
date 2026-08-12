@@ -1,0 +1,5 @@
+Hello {{ user.display_name }},
+
+Verify your email: {{ verification_url }}
+
+If you did not request this, ignore this message.

@@ -1,0 +1,3 @@
+{% extends "emails/base.html" %}
+{% block title %}Account security action{% endblock %}
+{% block content %}<p>Hello {{ user.display_name }},</p><p>A sensitive account action was requested.</p><p><a href="{{ action_url }}">Confirm action</a></p><p>If this was not you, do not use this link.</p>{% endblock %}

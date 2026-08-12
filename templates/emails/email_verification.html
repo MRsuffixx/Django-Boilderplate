@@ -1,0 +1,3 @@
+{% extends "emails/base.html" %}
+{% block title %}Verify your email{% endblock %}
+{% block content %}<p>Hello {{ user.display_name }},</p><p>Confirm this email address to finish securing your account.</p><p><a href="{{ verification_url }}">Verify email</a></p><p>If you did not request this, you can ignore this message.</p>{% endblock %}

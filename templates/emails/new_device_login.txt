@@ -1,0 +1,9 @@
+Hello {{ user.display_name }},
+
+A new device signed in:
+Browser: {{ session.browser }}
+Operating system: {{ session.operating_system }}
+Device: {{ session.device }}
+IP: {{ session.ip_address }}
+
+Review unknown sessions immediately.

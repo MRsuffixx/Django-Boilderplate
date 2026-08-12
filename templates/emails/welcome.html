@@ -1,0 +1,3 @@
+{% extends "emails/base.html" %}
+{% block title %}Welcome to {{ site_name }}{% endblock %}
+{% block content %}<p>Hello {{ user.display_name }},</p><p>Your account is ready. Welcome to {{ site_name }}.</p>{% endblock %}

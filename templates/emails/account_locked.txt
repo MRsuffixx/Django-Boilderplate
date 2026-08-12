@@ -1,0 +1,3 @@
+Hello {{ user.display_name }},
+
+Sign-in attempts caused a temporary security lock. Try again later or reset your password.

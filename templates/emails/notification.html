@@ -1,0 +1,3 @@
+{% extends "emails/base.html" %}
+{% block title %}{{ notification.title }}{% endblock %}
+{% block content %}<p>Hello {{ user.display_name }},</p><h2>{{ notification.title }}</h2><p>{{ notification.message }}</p>{% endblock %}
