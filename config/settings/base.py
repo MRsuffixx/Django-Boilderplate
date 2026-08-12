@@ -160,7 +160,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "apps.api_keys.authentication.APIKeyAuthentication",
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.authentication.jwt.StatusAwareJWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
@@ -271,6 +271,10 @@ LOGIN_LOCKOUT_SECONDS = env.int("LOGIN_LOCKOUT_SECONDS", default=300)
 LOGIN_MAX_BACKOFF_SECONDS = env.int("LOGIN_MAX_BACKOFF_SECONDS", default=3600)
 TOTP_ENCRYPTION_KEY = env("TOTP_ENCRYPTION_KEY", default="")
 API_KEY_PEPPER = env("API_KEY_PEPPER", default="")
+API_KEY_AVAILABLE_SCOPES = env.list(
+    "API_KEY_AVAILABLE_SCOPES",
+    default=["profile.read", "profile.write", "notifications.read", "notifications.write"],
+)
 MAX_UPLOAD_SIZE = env.int("MAX_UPLOAD_SIZE", default=10 * 1024 * 1024)
 MAX_IMAGE_PIXELS = env.int("MAX_IMAGE_PIXELS", default=25_000_000)
 SESSION_RETENTION_DAYS = env.int("SESSION_RETENTION_DAYS", default=30)
