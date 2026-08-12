@@ -132,9 +132,11 @@ class User(UUIDModel, AbstractBaseUser, PermissionsMixin):
 
     def has_active_ban(self) -> bool:
         now = timezone.now()
-        return self.bans.filter(revoked_at__isnull=True, starts_at__lte=now).filter(
-            models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now)
-        ).exists()
+        return (
+            self.bans.filter(revoked_at__isnull=True, starts_at__lte=now)
+            .filter(models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now))
+            .exists()
+        )
 
     def can_authenticate_now(self) -> bool:
         return self.is_active and self.status == AccountStatus.ACTIVE and not self.has_active_ban()

@@ -7,6 +7,7 @@ from apps.authorization.models import (
     UserPermissionOverride,
     UserRole,
 )
+from common.admin import AuditAdminMixin
 
 
 class RolePermissionInline(admin.TabularInline):
@@ -16,7 +17,7 @@ class RolePermissionInline(admin.TabularInline):
 
 
 @admin.register(Role)
-class RoleAdmin(admin.ModelAdmin):
+class RoleAdmin(AuditAdminMixin, admin.ModelAdmin):
     list_display = ["name", "slug", "priority", "is_system", "created_at"]
     list_filter = ["is_system", "priority"]
     search_fields = ["name", "slug", "description"]
@@ -34,7 +35,7 @@ class RoleAdmin(admin.ModelAdmin):
 
 
 @admin.register(Permission)
-class PermissionAdmin(admin.ModelAdmin):
+class PermissionAdmin(AuditAdminMixin, admin.ModelAdmin):
     list_display = ["codename", "description", "is_system", "created_at"]
     list_filter = ["is_system"]
     search_fields = ["codename", "description"]
@@ -50,7 +51,7 @@ class PermissionAdmin(admin.ModelAdmin):
 
 
 @admin.register(UserRole)
-class UserRoleAdmin(admin.ModelAdmin):
+class UserRoleAdmin(AuditAdminMixin, admin.ModelAdmin):
     list_display = ["user", "role", "valid_from", "valid_until", "granted_by"]
     list_filter = ["role", "valid_from", "valid_until"]
     search_fields = ["user__email", "user__username", "role__name"]
@@ -59,7 +60,7 @@ class UserRoleAdmin(admin.ModelAdmin):
 
 
 @admin.register(UserPermissionOverride)
-class UserPermissionOverrideAdmin(admin.ModelAdmin):
+class UserPermissionOverrideAdmin(AuditAdminMixin, admin.ModelAdmin):
     list_display = ["user", "permission", "effect", "granted_by", "updated_at"]
     list_filter = ["effect", "permission"]
     search_fields = ["user__email", "permission__codename", "reason"]

@@ -1,10 +1,11 @@
 from django.contrib import admin
 
 from apps.files.models import StoredFile
+from common.admin import AuditAdminMixin
 
 
 @admin.register(StoredFile)
-class StoredFileAdmin(admin.ModelAdmin):
+class StoredFileAdmin(AuditAdminMixin, admin.ModelAdmin):
     list_display = [
         "original_name",
         "owner",

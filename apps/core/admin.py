@@ -1,10 +1,11 @@
 from django.contrib import admin
 
 from apps.core.models import FeatureFlag, IdempotencyRecord, Setting
+from common.admin import AuditAdminMixin
 
 
 @admin.register(Setting)
-class SettingAdmin(admin.ModelAdmin):
+class SettingAdmin(AuditAdminMixin, admin.ModelAdmin):
     list_display = ["key", "value_type", "group", "is_public", "updated_at"]
     list_filter = ["value_type", "group", "is_public"]
     search_fields = ["key", "description"]
@@ -12,7 +13,7 @@ class SettingAdmin(admin.ModelAdmin):
 
 
 @admin.register(FeatureFlag)
-class FeatureFlagAdmin(admin.ModelAdmin):
+class FeatureFlagAdmin(AuditAdminMixin, admin.ModelAdmin):
     list_display = ["key", "enabled", "updated_at"]
     list_filter = ["enabled"]
     search_fields = ["key", "description"]

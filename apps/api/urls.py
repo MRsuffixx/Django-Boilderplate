@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
@@ -5,8 +6,8 @@ from apps.api.views.accounts import (
     CurrentUserPreferencesView,
     CurrentUserProfileView,
     CurrentUserView,
-    SecurityEventListView,
     SecurityEventAdminViewSet,
+    SecurityEventListView,
     UserAdminViewSet,
 )
 from apps.api.views.api_keys import APIKeyViewSet
@@ -45,8 +46,10 @@ from apps.api.views.sessions import UserSessionViewSet
 router = DefaultRouter()
 router.register("users", UserAdminViewSet, basename="user-admin")
 router.register("users/me/sessions", UserSessionViewSet, basename="user-session")
-router.register("notifications", NotificationViewSet, basename="notification")
-router.register("api-keys", APIKeyViewSet, basename="api-key")
+if settings.ENABLE_NOTIFICATIONS:
+    router.register("notifications", NotificationViewSet, basename="notification")
+if settings.ENABLE_API_KEYS:
+    router.register("api-keys", APIKeyViewSet, basename="api-key")
 router.register("roles", RoleViewSet, basename="role")
 router.register("permissions", PermissionViewSet, basename="permission")
 router.register("role-permissions", RolePermissionViewSet, basename="role-permission")

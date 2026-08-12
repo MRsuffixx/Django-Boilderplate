@@ -1,10 +1,11 @@
 from django.contrib import admin
 
 from apps.webhooks.models import WebhookDelivery, WebhookEndpoint, WebhookEvent
+from common.admin import AuditAdminMixin
 
 
 @admin.register(WebhookEndpoint)
-class WebhookEndpointAdmin(admin.ModelAdmin):
+class WebhookEndpointAdmin(AuditAdminMixin, admin.ModelAdmin):
     list_display = ["name", "owner", "url", "is_active", "updated_at"]
     list_filter = ["is_active", "created_at"]
     search_fields = ["name", "url", "owner__email"]

@@ -11,10 +11,15 @@ from apps.authentication.services import SessionService, TokenService
 def expire_temporary_bans() -> int:
     now = timezone.now()
     activated = 0
-    users_to_activate = User.objects.exclude(status=AccountStatus.BANNED).filter(
-        bans__revoked_at__isnull=True,
-        bans__starts_at__lte=now,
-    ).filter(Q(bans__expires_at__isnull=True) | Q(bans__expires_at__gt=now)).distinct()
+    users_to_activate = (
+        User.objects.exclude(status=AccountStatus.BANNED)
+        .filter(
+            bans__revoked_at__isnull=True,
+            bans__starts_at__lte=now,
+        )
+        .filter(Q(bans__expires_at__isnull=True) | Q(bans__expires_at__gt=now))
+        .distinct()
+    )
     for user in users_to_activate:
         user.status = AccountStatus.BANNED
         user.save(update_fields=["status", "updated_at"])

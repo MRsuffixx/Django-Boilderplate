@@ -1,11 +1,12 @@
 from django.contrib import admin
-from django.utils import timezone
 
 from apps.api_keys.models import APIKey
+from apps.api_keys.services import APIKeyService
+from common.admin import AuditAdminMixin
 
 
 @admin.register(APIKey)
-class APIKeyAdmin(admin.ModelAdmin):
+class APIKeyAdmin(AuditAdminMixin, admin.ModelAdmin):
     list_display = [
         "name",
         "owner",
@@ -24,4 +25,5 @@ class APIKeyAdmin(admin.ModelAdmin):
 
     @admin.action(description="Revoke selected API keys")
     def revoke_selected(self, request, queryset):
-        queryset.filter(revoked_at__isnull=True).update(revoked_at=timezone.now())
+        for api_key in queryset.filter(revoked_at__isnull=True):
+            APIKeyService.revoke(api_key=api_key, actor=request.user, request=request)

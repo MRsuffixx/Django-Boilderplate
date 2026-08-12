@@ -3,6 +3,8 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 
 from apps.accounts.models import User, UserBan, UserPreferences, UserProfile, UserSecuritySettings
+from apps.accounts.services import BanService
+from common.admin import AuditAdminMixin
 
 
 class UserProfileInline(admin.StackedInline):
@@ -22,7 +24,7 @@ class UserSecuritySettingsInline(admin.StackedInline):
 
 
 @admin.register(User)
-class UserAdmin(BaseUserAdmin):
+class UserAdmin(AuditAdminMixin, BaseUserAdmin):
     ordering = ["-created_at"]
     list_display = [
         "email",
@@ -78,9 +80,29 @@ class UserAdmin(BaseUserAdmin):
 
 
 @admin.register(UserBan)
-class UserBanAdmin(admin.ModelAdmin):
+class UserBanAdmin(AuditAdminMixin, admin.ModelAdmin):
     list_display = ["user", "banned_by", "starts_at", "expires_at", "revoked_at", "created_at"]
     list_filter = ["starts_at", "expires_at", "revoked_at"]
     search_fields = ["user__email", "user__username", "reason"]
     autocomplete_fields = ["user", "banned_by"]
     readonly_fields = ["id", "created_at", "revoked_at"]
+    actions = ["revoke_selected"]
+
+    def save_model(self, request, obj, form, change):
+        if change:
+            return super().save_model(request, obj, form, change)
+        created = BanService.ban(
+            user=obj.user,
+            reason=obj.reason,
+            actor=request.user,
+            starts_at=obj.starts_at,
+            expires_at=obj.expires_at,
+            request=request,
+        )
+        obj.pk = created.pk
+        obj._state.adding = False
+
+    @admin.action(description="Revoke selected bans")
+    def revoke_selected(self, request, queryset):
+        for ban in queryset.filter(revoked_at__isnull=True):
+            BanService.revoke(ban=ban, actor=request.user, request=request)

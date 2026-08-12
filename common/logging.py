@@ -12,7 +12,7 @@ from pythonjsonlogger.json import JsonFormatter
 from common.context import request_id_context, user_id_context
 
 SENSITIVE_KEY = re.compile(
-    r"password|authorization|cookie|token|secret|api[_-]?key|totp|recovery[_-]?code",
+    r"password|authorization|cookie|token|secret|api[_-]?key|key_hash|session_key|encrypted|totp|recovery[_-]?code",
     re.IGNORECASE,
 )
 

@@ -59,7 +59,12 @@ class APIKeyService:
             return None
         prefix = raw_key.split("_", 1)[1].split(".", 1)[0]
         key = APIKey.objects.select_related("owner").filter(prefix=prefix).first()
-        if not key or not key.is_active or not secure_compare(key.key_hash, cls._hash(raw_key)):
+        if (
+            not key
+            or not key.is_active
+            or not key.owner.can_authenticate_now()
+            or not secure_compare(key.key_hash, cls._hash(raw_key))
+        ):
             return None
         APIKey.objects.filter(pk=key.pk).update(
             last_used_at=timezone.now(), last_used_ip=ip_address
