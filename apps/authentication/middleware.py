@@ -17,6 +17,9 @@ class UserSessionMiddleware:
             and request.user.is_authenticated
             and request.session.session_key
         ):
+            if not request.user.can_authenticate_now():
+                request.session.flush()
+                return self.get_response(request)
             user_session = SessionService.current(request)
             if user_session and user_session.revoked_at:
                 request.session.flush()

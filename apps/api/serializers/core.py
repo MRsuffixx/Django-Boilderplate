@@ -43,6 +43,13 @@ class SettingSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
 
+    def validate(self, attrs):
+        instance = self.instance or Setting()
+        for field, value in attrs.items():
+            setattr(instance, field, value)
+        instance.full_clean(exclude={"id"}, validate_unique=False)
+        return attrs
+
 
 class FeatureFlagSerializer(serializers.ModelSerializer):
     class Meta:

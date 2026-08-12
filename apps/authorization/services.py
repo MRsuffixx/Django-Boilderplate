@@ -3,7 +3,6 @@ from __future__ import annotations
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.accounts.models import AccountStatus
 from apps.authorization.models import OverrideEffect, UserPermissionOverride
 
 
@@ -12,12 +11,7 @@ class PermissionService:
 
     @staticmethod
     def has_permission(user, codename: str) -> bool:
-        if (
-            not user
-            or not user.is_authenticated
-            or not user.is_active
-            or user.status != AccountStatus.ACTIVE
-        ):
+        if not user or not user.is_authenticated or not user.can_authenticate_now():
             return False
         override = (
             UserPermissionOverride.objects.filter(user=user, permission__codename=codename)
@@ -42,12 +36,7 @@ class PermissionService:
 
     @staticmethod
     def permission_codes(user) -> set[str]:
-        if (
-            not user
-            or not user.is_authenticated
-            or not user.is_active
-            or user.status != AccountStatus.ACTIVE
-        ):
+        if not user or not user.is_authenticated or not user.can_authenticate_now():
             return set()
         now = timezone.now()
         role_codes = set(

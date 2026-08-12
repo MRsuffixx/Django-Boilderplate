@@ -25,6 +25,11 @@ class Permission(UUIDModel, TimeStampedModel):
     def __str__(self) -> str:
         return self.codename
 
+    def delete(self, *args, **kwargs):
+        if self.is_system:
+            raise ValidationError("System permissions cannot be deleted.")
+        return super().delete(*args, **kwargs)
+
 
 class Role(UUIDModel, TimeStampedModel):
     name = models.CharField(max_length=100)

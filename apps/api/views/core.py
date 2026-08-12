@@ -1,6 +1,7 @@
 from rest_framework import viewsets
 
 from apps.api.serializers.core import AuditLogSerializer, FeatureFlagSerializer, SettingSerializer
+from apps.api_keys.permissions import HasAPIKeyScope
 from apps.audit.models import AuditLog
 from apps.audit.services import AuditService
 from apps.core.models import FeatureFlag, Setting
@@ -10,7 +11,7 @@ from common.permissions import HasPermission
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.select_related("actor")
     serializer_class = AuditLogSerializer
-    permission_classes = [HasPermission]
+    permission_classes = [HasPermission, HasAPIKeyScope]
     required_permission = "audit.view"
     filterset_fields = ["action", "target_type", "actor"]
     search_fields = ["action", "target_repr", "target_id", "request_id"]
@@ -21,7 +22,7 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
 class SettingViewSet(viewsets.ModelViewSet):
     queryset = Setting.objects.all()
     serializer_class = SettingSerializer
-    permission_classes = [HasPermission]
+    permission_classes = [HasPermission, HasAPIKeyScope]
     filterset_fields = ["group", "is_public", "value_type"]
     search_fields = ["key", "description"]
 
@@ -57,7 +58,7 @@ class SettingViewSet(viewsets.ModelViewSet):
 class FeatureFlagViewSet(viewsets.ModelViewSet):
     queryset = FeatureFlag.objects.all()
     serializer_class = FeatureFlagSerializer
-    permission_classes = [HasPermission]
+    permission_classes = [HasPermission, HasAPIKeyScope]
     search_fields = ["key", "description"]
 
     @property

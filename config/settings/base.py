@@ -166,7 +166,10 @@ REST_FRAMEWORK = {
         "apps.authentication.jwt.StatusAwareJWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
-    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+        "apps.api_keys.permissions.HasAPIKeyScope",
+    ],
     "DEFAULT_PAGINATION_CLASS": "common.pagination.StandardPagination",
     "PAGE_SIZE": 25,
     "EXCEPTION_HANDLER": "common.exceptions.handler.api_exception_handler",
@@ -232,6 +235,7 @@ CONTENT_SECURITY_POLICY = env(
     default="default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'",
 )
 TRUST_PROXY_HEADERS = env.bool("TRUST_PROXY_HEADERS", default=False)
+TRUSTED_PROXY_IPS = env.list("TRUSTED_PROXY_IPS", default=[])
 
 EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
 EMAIL_HOST = env("EMAIL_HOST", default="localhost")
@@ -267,6 +271,7 @@ CELERY_BEAT_SCHEDULE = {
     },
     "expire-bans-hourly": {"task": "apps.accounts.tasks.expire_temporary_bans", "schedule": 3600},
     "cleanup-files-daily": {"task": "apps.files.tasks.cleanup_unused_files", "schedule": 86400},
+    "cleanup-audit-daily": {"task": "apps.audit.tasks.cleanup_audit_logs", "schedule": 86400},
     "dispatch-webhooks": {"task": "apps.webhooks.tasks.dispatch_pending_webhooks", "schedule": 60},
 }
 

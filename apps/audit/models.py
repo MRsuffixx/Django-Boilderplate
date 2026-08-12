@@ -7,6 +7,17 @@ from django.db import models
 from common.models import UUIDModel
 
 
+class AuditLogQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        raise ValidationError("Audit logs cannot be updated through the application.")
+
+    def delete(self):
+        raise ValidationError("Use the explicit retention operation for audit deletion.")
+
+    def hard_delete_for_retention(self):
+        return super().delete()
+
+
 class AuditLog(UUIDModel):
     actor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -26,6 +37,8 @@ class AuditLog(UUIDModel):
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    objects = AuditLogQuerySet.as_manager()
 
     class Meta:
         ordering = ["-created_at"]

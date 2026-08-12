@@ -29,6 +29,9 @@ class RoleAdmin(admin.ModelAdmin):
             super().has_delete_permission(request, obj) and (obj is None or not obj.is_system)
         )
 
+    def delete_queryset(self, request, queryset):
+        return super().delete_queryset(request, queryset.filter(is_system=False))
+
 
 @admin.register(Permission)
 class PermissionAdmin(admin.ModelAdmin):
@@ -36,6 +39,14 @@ class PermissionAdmin(admin.ModelAdmin):
     list_filter = ["is_system"]
     search_fields = ["codename", "description"]
     readonly_fields = ["id", "created_at", "updated_at"]
+
+    def has_delete_permission(self, request, obj=None):
+        return bool(
+            super().has_delete_permission(request, obj) and (obj is None or not obj.is_system)
+        )
+
+    def delete_queryset(self, request, queryset):
+        return super().delete_queryset(request, queryset.filter(is_system=False))
 
 
 @admin.register(UserRole)

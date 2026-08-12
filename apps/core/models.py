@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -25,6 +27,14 @@ class Setting(UUIDModel, TimeStampedModel):
     description = models.TextField(blank=True)
 
     def clean(self):
+        if re.search(
+            r"(^|[._-])(password|secret|credential|private_key|access_key|token|dsn)($|[._-])",
+            self.key,
+            re.IGNORECASE,
+        ):
+            raise ValidationError(
+                {"key": "Secret-like values must be stored outside the database."}
+            )
         valid = {
             SettingValueType.STRING: lambda value: isinstance(value, str),
             SettingValueType.INTEGER: lambda value: (

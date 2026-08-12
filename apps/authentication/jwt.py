@@ -4,11 +4,11 @@ from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import AccessToken
 
-from apps.accounts.models import AccountStatus, User
+from apps.accounts.models import User
 
 
 def ensure_account_available(user) -> None:
-    if not user.is_active or user.status != AccountStatus.ACTIVE:
+    if not user.can_authenticate_now():
         raise AuthenticationFailed(_("User account is unavailable."), code="user_inactive")
 
 

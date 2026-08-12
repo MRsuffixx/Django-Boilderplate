@@ -9,6 +9,7 @@ from apps.api.serializers.accounts import (
     UserProfileSerializer,
     UserSerializer,
 )
+from apps.api_keys.permissions import HasAPIKeyScope
 from apps.audit.services import AuditService
 from common.permissions import HasPermission
 from common.responses import success_response
@@ -16,6 +17,7 @@ from common.responses import success_response
 
 class CurrentUserView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
+    required_api_key_scopes = ("profile.read",)
 
     def get_object(self):
         return self.request.user
@@ -26,6 +28,11 @@ class CurrentUserView(generics.RetrieveAPIView):
 
 class CurrentUserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
+    required_api_key_scopes_by_method = {
+        "GET": ("profile.read",),
+        "PUT": ("profile.write",),
+        "PATCH": ("profile.write",),
+    }
 
     def get_object(self):
         profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
@@ -41,6 +48,11 @@ class CurrentUserProfileView(generics.RetrieveUpdateAPIView):
 
 class CurrentUserPreferencesView(generics.RetrieveUpdateAPIView):
     serializer_class = UserPreferencesSerializer
+    required_api_key_scopes_by_method = {
+        "GET": ("profile.read",),
+        "PUT": ("profile.write",),
+        "PATCH": ("profile.write",),
+    }
 
     def get_object(self):
         preferences, _ = UserPreferences.objects.get_or_create(user=self.request.user)
@@ -65,7 +77,7 @@ class SecurityEventListView(generics.ListAPIView):
 
 class UserAdminViewSet(viewsets.ModelViewSet):
     serializer_class = UserAdminSerializer
-    permission_classes = [HasPermission]
+    permission_classes = [HasPermission, HasAPIKeyScope]
     filterset_fields = ["status", "is_active", "is_staff"]
     search_fields = ["email", "username", "first_name", "last_name"]
     ordering_fields = ["created_at", "email", "username", "last_login"]

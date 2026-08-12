@@ -7,6 +7,7 @@ from apps.api.serializers.authorization import (
     UserPermissionOverrideSerializer,
     UserRoleSerializer,
 )
+from apps.api_keys.permissions import HasAPIKeyScope
 from apps.audit.services import AuditService
 from apps.authorization.models import (
     Permission,
@@ -15,11 +16,12 @@ from apps.authorization.models import (
     UserPermissionOverride,
     UserRole,
 )
+from common.exceptions import APIException
 from common.permissions import HasPermission
 
 
 class AuthorizationViewSet(viewsets.ModelViewSet):
-    permission_classes = [HasPermission]
+    permission_classes = [HasPermission, HasAPIKeyScope]
     required_permission = "roles.manage"
     audit_name = "authorization"
 
@@ -50,6 +52,12 @@ class AuthorizationViewSet(viewsets.ModelViewSet):
         )
 
     def perform_destroy(self, instance):
+        if getattr(instance, "is_system", False):
+            raise APIException(
+                "System authorization records cannot be deleted.",
+                code="CONFLICT",
+                status_code=409,
+            )
         AuditService.record(
             action=f"{self.audit_name}.deleted",
             target=instance,
